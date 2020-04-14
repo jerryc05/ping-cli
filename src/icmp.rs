@@ -1,24 +1,28 @@
 use crate::icmp_0_type::IcmpType;
 use crate::icmp_1_code::IcmpCode;
 use crate::icmp_2_checksum::{IcmpChecksum, ChecksumIsNotNoneError};
+use std::borrow::Cow;
 
 /**
 [RFC 792](https://tools.ietf.org/html/rfc792)
 
   0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-|         Type          |         Code          |
+|         type_         |         code          |
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-|                   Checksum                    |
+|                   checksum                    |
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+|    data ...
++--+--+--+--+--
 */
-pub struct Icmp {
+pub struct Icmp<'a> {
   pub type_: IcmpType,
   pub code: IcmpCode,
   pub checksum: Option<IcmpChecksum>,
+  pub data: Cow<'a, [u8]>,
 }
 
-impl Icmp {
+impl<'a> Icmp<'_> {
   pub fn checksum(&mut self) -> Result<(), ChecksumIsNotNoneError> {
     if self.checksum.is_some() {
       return Err(ChecksumIsNotNoneError);
@@ -28,14 +32,14 @@ impl Icmp {
     Ok(())
   }
 
-   /// # Safety
-   /// This function will not check whether `self.checksum` is None.
+  /// # Safety
+  /// This function will not check whether `self.checksum` is None.
   pub unsafe fn checksum_unchecked(&mut self) {
     IcmpChecksum::checksum_unchecked(self);
   }
 }
 
-impl From<&Icmp> for Vec<u8> {
+impl<'a> From<&Icmp<'_>> for Vec<u8> {
   fn from(icmp: &Icmp) -> Self {
     let mut result = Self::with_capacity(4);
 
@@ -44,7 +48,7 @@ impl From<&Icmp> for Vec<u8> {
     }
 
     /* code */ {
-      result.push((&icmp.code).into())
+      result.push(*icmp.code);
     }
 
     /* checksum */ {
@@ -58,7 +62,10 @@ impl From<&Icmp> for Vec<u8> {
       result.extend_from_slice(&bytes)
     }
 
-    unimplemented!();
+    /* data */ {
+      result.extend_from_slice(icmp.data.as_ref());
+    }
+
     result
   }
 }
