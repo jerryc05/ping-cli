@@ -69,3 +69,8 @@ impl<'a> From<&Icmp<'_>> for Vec<u8> {
     result
   }
 }
+
+#[test]
+fn test_icmp_to_vec(){
+  // todo
+}
