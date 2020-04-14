@@ -54,6 +54,6 @@ impl IcmpChecksum {
       }
     }
 
-    icmp.checksum = Some(Self(result));
+    icmp.checksum = Some(Self(!result));
   }
 }
