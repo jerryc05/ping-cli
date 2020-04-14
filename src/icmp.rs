@@ -15,21 +15,18 @@ use std::borrow::Cow;
 |    data ...
 +--+--+--+--+--
 */
-pub trait Icmp<'a> {
+pub trait Icmp {
   fn type_(&self) -> IcmpType;
-  // fn type_mut(&mut self, type_: IcmpType);
 
   fn code(&self) -> IcmpCode;
-  // fn code_mut(&mut self, code: IcmpCode);
 
   fn checksum(&self) -> Option<IcmpChecksum>;
   fn checksum_mut(&mut self, checksum: Option<IcmpChecksum>);
 
-  fn data(&self) -> Cow<'a, [u8]>;
-  fn data_mut(&mut self, data: Cow<'a, [u8]>);
+  fn data<'a>(&self) -> Cow<'a, [u8]>;
 }
 
-impl<'a> dyn Icmp<'_> {
+impl<'a> dyn Icmp {
   pub fn gen_checksum(&mut self) -> Result<(), ChecksumIsNotNoneError> {
     if self.checksum().is_some() {
       return Err(ChecksumIsNotNoneError);
@@ -46,7 +43,7 @@ impl<'a> dyn Icmp<'_> {
   }
 }
 
-impl<'a> From<&dyn Icmp<'_>> for Vec<u8> {
+impl<'a> From<&dyn Icmp> for Vec<u8> {
   fn from(icmp: &dyn Icmp) -> Self {
     let mut result = Self::with_capacity(4);
 
