@@ -28,10 +28,8 @@ impl Icmp {
     Ok(())
   }
 
-  /**
-   * # Safety
-   * This function will not check whether `self.checksum` is None.
-   */
+   /// # Safety
+   /// This function will not check whether `self.checksum` is None.
   pub unsafe fn checksum_unchecked(&mut self) {
     IcmpChecksum::checksum_unchecked(self);
   }
