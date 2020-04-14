@@ -99,8 +99,8 @@ fn test_icmp_type_to_u8() {
   assert_eq!(0_u8, EchoReply.into());
   assert!(1_u8 <= _Unassigned1To2.into() && 2_u8 >= _Unassigned1To2.into());
   assert_eq!(3_u8, DestinationUnreachable.into());
-  assert!(19_u8 <= _Reserved19To29.into() && 29_u8 >= _Reserved19To29.into());
   assert_eq!(16_u8, _InformationReply.into());
+  assert!(19_u8 <= _Reserved19To29.into() && 29_u8 >= _Reserved19To29.into());
   assert_eq!(255_u8, _Reserved255.into());
 }
 
@@ -128,8 +128,9 @@ fn test_u8_to_icmp_type() {
   assert_eq!(_Unassigned1To2, IcmpType::from(1));
   assert_eq!(_Unassigned1To2, IcmpType::from(2));
   assert_eq!(DestinationUnreachable, IcmpType::from(3));
-  assert_eq!(_Reserved19To29, IcmpType::from(19));
-  assert_eq!(_Reserved19To29, IcmpType::from(29));
   assert_eq!(_InformationReply, IcmpType::from(16));
+  for i in 19..=29{
+    assert_eq!(_Reserved19To29, IcmpType::from(i));
+  }
   assert_eq!(_Reserved255, IcmpType::from(255));
 }
