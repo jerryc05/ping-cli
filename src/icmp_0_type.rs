@@ -125,8 +125,9 @@ impl From<u8> for IcmpType {
 #[test]
 fn test_u8_to_icmp_type() {
   assert_eq!(EchoReply, IcmpType::from(0));
-  assert_eq!(_Unassigned1To2, IcmpType::from(1));
-  assert_eq!(_Unassigned1To2, IcmpType::from(2));
+  for i in 1..=2 {
+    assert_eq!(_Unassigned1To2, IcmpType::from(i));
+  }
   assert_eq!(DestinationUnreachable, IcmpType::from(3));
   assert_eq!(_InformationReply, IcmpType::from(16));
   for i in 19..=29 {
