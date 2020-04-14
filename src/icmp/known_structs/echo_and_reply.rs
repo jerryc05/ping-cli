@@ -1,8 +1,8 @@
 use std::borrow::Cow;
-use crate::icmp::Icmp;
-use crate::icmp_1_code::IcmpCode;
-use crate::icmp_2_checksum::IcmpChecksum;
-use crate::icmp_0_type::IcmpType;
+use crate::icmp::icmp_1_header_2_checksum::IcmpChecksum;
+use crate::icmp::icmp_1_header_1_code::IcmpCode;
+use crate::icmp::icmp_0_trait::Icmp;
+use crate::icmp::icmp_1_header_0_type::IcmpType;
 
 #[derive(Debug)]
 struct EchoAndReplyIcmp<'a> {

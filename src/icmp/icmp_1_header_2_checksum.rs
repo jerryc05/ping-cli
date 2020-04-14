@@ -1,5 +1,5 @@
 use std::ops::{Deref, DerefMut};
-use crate::icmp::Icmp;
+use crate::icmp::icmp_0_trait::Icmp;
 
 #[derive(Debug, Clone, Copy)]
 pub struct IcmpChecksum(u16);

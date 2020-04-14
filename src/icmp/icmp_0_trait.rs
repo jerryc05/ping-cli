@@ -1,6 +1,6 @@
-use crate::icmp_0_type::IcmpType;
-use crate::icmp_1_code::IcmpCode;
-use crate::icmp_2_checksum::{IcmpChecksum, ChecksumIsNotNoneError};
+use crate::icmp::icmp_1_header_0_type::IcmpType;
+use crate::icmp::icmp_1_header_1_code::IcmpCode;
+use crate::icmp::icmp_1_header_2_checksum::{IcmpChecksum, ChecksumIsNotNoneError};
 use std::borrow::Cow;
 
 /**
