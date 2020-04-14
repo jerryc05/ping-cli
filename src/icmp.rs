@@ -28,26 +28,30 @@ impl Icmp {
     Ok(())
   }
 
+  /**
+   * # Safety
+   * This function will not check whether `self.checksum` is None.
+   */
   pub unsafe fn checksum_unchecked(&mut self) {
     IcmpChecksum::checksum_unchecked(self);
   }
 }
 
-impl Into<Vec<u8>> for Icmp {
-  fn into(self) -> Vec<u8> {
-    let mut result = Vec::with_capacity(4);
+impl From<&Icmp> for Vec<u8> {
+  fn from(icmp: &Icmp) -> Self {
+    let mut result = Self::with_capacity(4);
 
     /* type */ {
-      result.push(self.type_.into())
+      result.push((&icmp.type_).into())
     }
 
     /* code */ {
-      result.push(self.code.into())
+      result.push((&icmp.code).into())
     }
 
     /* checksum */ {
       let bytes: [u8; 2] = {
-        if let Some(checksum) = self.checksum {
+        if let Some(checksum) = &icmp.checksum {
           checksum.to_be_bytes()
         } else {
           0_u16.to_be_bytes()

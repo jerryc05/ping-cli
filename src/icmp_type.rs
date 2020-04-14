@@ -47,7 +47,7 @@ use std::intrinsics::transmute;
 |254     |RFC3692-style Experiment 2               |[RFC4727]
 |255     |Reserved                                 |[JBP]
 */
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum IcmpType {
   EchoReply = 0,
   _Unassigned1To2 = 2,
@@ -88,9 +88,9 @@ pub enum IcmpType {
   _Reserved255 = 255,
 }
 
-impl Into<u8> for IcmpType {
-  fn into(self) -> u8 {
-    self as u8
+impl From<&IcmpType> for u8 {
+  fn from(type_: &IcmpType) -> Self {
+    (*type_) as Self
   }
 }
 
@@ -129,7 +129,7 @@ fn test_u8_to_icmp_type() {
   assert_eq!(_Unassigned1To2, IcmpType::from(2));
   assert_eq!(DestinationUnreachable, IcmpType::from(3));
   assert_eq!(_InformationReply, IcmpType::from(16));
-  for i in 19..=29{
+  for i in 19..=29 {
     assert_eq!(_Reserved19To29, IcmpType::from(i));
   }
   assert_eq!(_Reserved255, IcmpType::from(255));
