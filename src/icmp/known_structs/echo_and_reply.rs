@@ -3,12 +3,16 @@ use crate::icmp::icmp_1_header_2_checksum::IcmpChecksum;
 use crate::icmp::icmp_1_header_1_code::IcmpCode;
 use crate::icmp::icmp_0_trait::Icmp;
 use crate::icmp::icmp_1_header_0_type::IcmpType;
+use std::mem::size_of;
+
+type IdentifierType = u16;
+type SequenceNumType = u16;
 
 #[derive(Debug)]
 struct EchoAndReplyIcmp<'a> {
   checksum: Option<IcmpChecksum>,
-  identifier: u8,
-  sequence_num: u8,
+  identifier: IdentifierType,
+  sequence_num: SequenceNumType,
   payload: Cow<'a, [u8]>,
 }
 
@@ -29,14 +33,16 @@ impl EchoAndReplyIcmp<'_> {
   }
 
   fn data<'a>(&self) -> Cow<'a, [u8]> {
-    let mut vec = Vec::with_capacity(2 + self.payload.len());
+    let mut vec = Vec::with_capacity(
+      size_of::<IdentifierType>() + size_of::<SequenceNumType>() +
+        self.payload.len());
 
     /* identifier */ {
-      vec.push(self.identifier);
+      vec.extend(self.identifier.to_be_bytes().iter());
     }
 
     /* sequence_num */ {
-      vec.push(self.sequence_num);
+      vec.extend(self.sequence_num.to_be_bytes().iter());
     }
 
     /* other_data */ {
