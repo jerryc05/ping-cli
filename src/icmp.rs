@@ -1,6 +1,6 @@
-use crate::icmp_type::IcmpType;
-use crate::icmp_code::IcmpCode;
-use crate::icmp_checksum::{IcmpChecksum, ChecksumIsNotNoneError};
+use crate::icmp_0_type::IcmpType;
+use crate::icmp_1_code::IcmpCode;
+use crate::icmp_2_checksum::{IcmpChecksum, ChecksumIsNotNoneError};
 
 /**
 [RFC 792](https://tools.ietf.org/html/rfc792)

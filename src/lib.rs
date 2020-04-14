@@ -1,5 +1,5 @@
 pub mod icmp;
-pub mod icmp_type;
-pub mod icmp_code;
-pub mod icmp_checksum;
+pub mod icmp_0_type;
+pub mod icmp_1_code;
+pub mod icmp_2_checksum;
 mod utils;

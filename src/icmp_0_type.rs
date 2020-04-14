@@ -1,5 +1,5 @@
 #[allow(unused_imports)]
-use crate::icmp_type::IcmpType::*;
+use crate::icmp_0_type::IcmpType::*;
 use std::intrinsics::transmute;
 
 /**
