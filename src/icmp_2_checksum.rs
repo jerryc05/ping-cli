@@ -1,6 +1,7 @@
 use std::ops::{Deref, DerefMut};
 use crate::icmp::Icmp;
 
+#[derive(Debug, Clone, Copy)]
 pub struct IcmpChecksum(u16);
 
 impl Deref for IcmpChecksum {
@@ -20,9 +21,9 @@ impl DerefMut for IcmpChecksum {
 pub struct ChecksumIsNotNoneError;
 
 impl IcmpChecksum {
-  pub(crate) unsafe fn checksum_unchecked(icmp: &mut Icmp) {
-    let vec_icmp = Vec::from(icmp as &Icmp);
-    icmp.checksum = Some(Self(checksum_impl(vec_icmp.as_slice())));
+  pub(crate) unsafe fn checksum_unchecked(icmp: &mut dyn Icmp) {
+    let vec_icmp = Vec::from(icmp as &dyn Icmp);
+    icmp.checksum_mut(Some(Self(checksum_impl(vec_icmp.as_slice()))));
   }
 }
 

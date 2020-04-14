@@ -15,55 +15,62 @@ use std::borrow::Cow;
 |    data ...
 +--+--+--+--+--
 */
-pub struct Icmp<'a> {
-  pub type_: IcmpType,
-  pub code: IcmpCode,
-  pub checksum: Option<IcmpChecksum>,
-  pub data: Cow<'a, [u8]>,
+pub trait Icmp<'a> {
+  fn type_(&self) -> IcmpType;
+  // fn type_mut(&mut self, type_: IcmpType);
+
+  fn code(&self) -> IcmpCode;
+  // fn code_mut(&mut self, code: IcmpCode);
+
+  fn checksum(&self) -> Option<IcmpChecksum>;
+  fn checksum_mut(&mut self, checksum: Option<IcmpChecksum>);
+
+  fn data(&self) -> Cow<'a, [u8]>;
+  fn data_mut(&mut self, data: Cow<'a, [u8]>);
 }
 
-impl<'a> Icmp<'_> {
-  pub fn checksum(&mut self) -> Result<(), ChecksumIsNotNoneError> {
-    if self.checksum.is_some() {
+impl<'a> dyn Icmp<'_> {
+  pub fn gen_checksum(&mut self) -> Result<(), ChecksumIsNotNoneError> {
+    if self.checksum().is_some() {
       return Err(ChecksumIsNotNoneError);
     }
 
-    unsafe { self.checksum_unchecked(); }
+    unsafe { self.gen_checksum_unchecked(); }
     Ok(())
   }
 
   /// # Safety
   /// This function will not check whether `self.checksum` is None.
-  pub unsafe fn checksum_unchecked(&mut self) {
+  pub unsafe fn gen_checksum_unchecked(&mut self) {
     IcmpChecksum::checksum_unchecked(self);
   }
 }
 
-impl<'a> From<&Icmp<'_>> for Vec<u8> {
-  fn from(icmp: &Icmp) -> Self {
+impl<'a> From<&dyn Icmp<'_>> for Vec<u8> {
+  fn from(icmp: &dyn Icmp) -> Self {
     let mut result = Self::with_capacity(4);
 
     /* type */ {
-      result.push((&icmp.type_).into())
+      result.push((&icmp.type_()).into())
     }
 
     /* code */ {
-      result.push(*icmp.code);
+      result.push(*icmp.code());
     }
 
     /* checksum */ {
       let bytes: [u8; 2] = {
-        if let Some(checksum) = &icmp.checksum {
+        if let Some(checksum) = &icmp.checksum() {
           checksum.to_be_bytes()
         } else {
           0_u16.to_be_bytes()
         }
       };
-      result.extend_from_slice(&bytes)
+      result.extend(bytes.iter())
     }
 
     /* data */ {
-      result.extend_from_slice(icmp.data.as_ref());
+      result.extend(icmp.data().iter());
     }
 
     result
@@ -71,6 +78,6 @@ impl<'a> From<&Icmp<'_>> for Vec<u8> {
 }
 
 #[test]
-fn test_icmp_to_vec(){
+fn test_icmp_to_vec() {
   // todo
 }

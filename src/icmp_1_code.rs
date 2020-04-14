@@ -1,5 +1,6 @@
 use std::ops::Deref;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct IcmpCode(u8);
 
 impl Deref for IcmpCode {
