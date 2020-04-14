@@ -4,7 +4,7 @@ use crate::icmp_1_code::IcmpCode;
 use crate::icmp_2_checksum::IcmpChecksum;
 use crate::icmp_0_type::IcmpType;
 
-
+#[derive(Debug)]
 struct EchoAndReplyIcmp<'a> {
   checksum: Option<IcmpChecksum>,
   identifier: u8,

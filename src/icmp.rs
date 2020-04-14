@@ -26,7 +26,7 @@ pub trait Icmp {
   fn data<'a>(&self) -> Cow<'a, [u8]>;
 }
 
-impl<'a> dyn Icmp {
+impl dyn Icmp {
   pub fn gen_checksum(&mut self) -> Result<(), ChecksumIsNotNoneError> {
     if self.checksum().is_some() {
       return Err(ChecksumIsNotNoneError);
@@ -43,7 +43,7 @@ impl<'a> dyn Icmp {
   }
 }
 
-impl<'a> From<&dyn Icmp> for Vec<u8> {
+impl From<&dyn Icmp> for Vec<u8> {
   fn from(icmp: &dyn Icmp) -> Self {
     let mut result = Self::with_capacity(4);
 
