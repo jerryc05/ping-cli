@@ -96,12 +96,12 @@ impl From<&IcmpType> for u8 {
 
 #[test]
 fn test_icmp_type_to_u8() {
-  assert_eq!(0_u8, EchoReply.into());
-  assert!(1_u8 <= _Unassigned1To2.into() && 2_u8 >= _Unassigned1To2.into());
-  assert_eq!(3_u8, DestinationUnreachable.into());
-  assert_eq!(16_u8, _InformationReply.into());
-  assert!(19_u8 <= _Reserved19To29.into() && 29_u8 >= _Reserved19To29.into());
-  assert_eq!(255_u8, _Reserved255.into());
+  assert_eq!(0_u8, (&EchoReply).into());
+  assert!(1_u8 <= (&_Unassigned1To2).into() && 2_u8 >= (&_Unassigned1To2).into());
+  assert_eq!(3_u8, (&DestinationUnreachable).into());
+  assert_eq!(16_u8, (&_InformationReply).into());
+  assert!(19_u8 <= (&_Reserved19To29).into() && 29_u8 >= (&_Reserved19To29).into());
+  assert_eq!(255_u8, (&_Reserved255).into());
 }
 
 impl From<u8> for IcmpType {
