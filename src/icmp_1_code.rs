@@ -1,7 +1,11 @@
-pub enum IcmpCode {}
+use std::ops::Deref;
 
-impl From<&IcmpCode> for u8 {
-  fn from(_: &IcmpCode) -> Self {
-    unimplemented!()
+pub struct IcmpCode(u8);
+
+impl Deref for IcmpCode {
+  type Target = u8;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
   }
 }
