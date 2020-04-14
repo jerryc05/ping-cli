@@ -1,0 +1,6 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Release bin stripped" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
+    <option name="command" value="run --release --" />
+    <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+  </configuration>
+</component>

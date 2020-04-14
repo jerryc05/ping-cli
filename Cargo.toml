@@ -1,0 +1,26 @@
+[package]
+name = "ping-cli"
+version = "0.1.0"
+authors = ["Ziyan \"Jerry\" Chen <jerryc443@gmail.com>"]
+edition = "2018"
+description = "A small Ping CLI application for MacOS or Linux. The CLI app should accept a hostname or an IP address as its argument, then send ICMP \"echo requests\" in a loop to the target while receiving \"echo reply\" messages. It should report loss and RTT times for each sent message."
+#documentation = "https://docs.rs/???"
+readme = "README.md"
+#homepage = "https://???.rs/"
+repository = "https://github.com/jerryc05/cf-intern-app-systems"
+license = "GPL-3.0-or-later"
+keywords = ["ping"]
+categories = [
+    "command-line-utilities"
+]
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+
+
+[profile.release]
+codegen-units = 1
+lto = true
+panic = 'abort'

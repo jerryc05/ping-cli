@@ -1,0 +1,24 @@
+name: Rust Debug
+
+on: [push, pull_request]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v2
+
+      - name: Switch Rust to Nightly
+        run: rustup default nightly
+
+      - name: Check Rust Version
+        run: rustup show
+
+      - name: Build
+        run: cargo build -v
+
+      - name: Run tests
+        run: cargo test -v

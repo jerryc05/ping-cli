@@ -1,0 +1,49 @@
+name: Rust Release
+
+on:
+  release:
+    types: created
+
+jobs:
+  build-ubuntu:
+    name: Build on Ubuntu
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - uses: actions/checkout@v2
+  
+      - name: Switch Rust to Nightly
+        run: rustup default nightly
+  
+      - name: Check Rust Version
+        run: rustup show
+  
+      - name: Build
+        run: cargo br -v
+  
+      - name: Run tests
+        run: cargo test -v
+  
+      - name: Upload to File.io
+        run: curl -F "file=@target/release/my-template" https://file.io
+
+  build-macos:
+    name: Build on Mac OS
+    runs-on: macos-late
+
+    steps:
+
+      - uses: actions/checkout@v2
+  
+      - name: Switch Rust to Nightly
+        run: rustup default nightly
+  
+      - name: Check Rust Version
+        run: rustup show
+  
+      - name: Build
+        run: cargo br -v
+  
+      - name: Upload to File.io
+        run: curl -F "file=@target/release/my-template" https://file.io
