@@ -9,7 +9,7 @@ struct EchoAndReplyIcmp<'a> {
   checksum: Option<IcmpChecksum>,
   identifier: u8,
   sequence_num: u8,
-  other_data: Cow<'a, [u8]>,
+  payload: Cow<'a, [u8]>,
 }
 
 impl EchoAndReplyIcmp<'_> {
@@ -29,7 +29,7 @@ impl EchoAndReplyIcmp<'_> {
   }
 
   fn data<'a>(&self) -> Cow<'a, [u8]> {
-    let mut vec = Vec::with_capacity(2 + self.other_data.len());
+    let mut vec = Vec::with_capacity(2 + self.payload.len());
 
     /* identifier */ {
       vec.push(self.identifier);
@@ -40,7 +40,7 @@ impl EchoAndReplyIcmp<'_> {
     }
 
     /* other_data */ {
-      vec.extend(self.other_data.iter());
+      vec.extend(self.payload.iter());
     }
 
     vec.into()
