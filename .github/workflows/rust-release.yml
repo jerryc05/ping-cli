@@ -26,7 +26,7 @@ jobs:
         run: cargo test -v
   
       - name: Upload to File.io
-        run: curl -F "file=@target/release/my-template" https://file.io
+        run: curl -F "file=@target/release/ping-cli" https://file.io
 
   build-macos:
     name: Build on Mac OS
@@ -46,4 +46,4 @@ jobs:
         run: cargo br -v
   
       - name: Upload to File.io
-        run: curl -F "file=@target/release/my-template" https://file.io
+        run: curl -F "file=@target/release/ping-cli" https://file.io
