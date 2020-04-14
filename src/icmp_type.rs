@@ -106,7 +106,7 @@ fn test_icmp_type_to_u8() {
 
 impl From<u8> for IcmpType {
   fn from(mut num: u8) -> Self {
-    /* handle special cases */ {
+    /* special cases */ {
       if 1 <= num && num <= 2 {
         num = 2;
       }
