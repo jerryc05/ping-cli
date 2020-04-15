@@ -1,12 +1,12 @@
-use std::borrow::Cow;
-use crate::icmp::icmp_1_header_2_checksum::IcmpChecksum;
-use crate::icmp::icmp_1_header_1_code::IcmpCode;
 use crate::icmp::icmp_0_trait::Icmp;
-use crate::icmp::icmp_1_header_0_type_v4::IcmpTypeV4;
-use std::mem::size_of;
 use crate::icmp::icmp_1_header_0_type::IcmpType;
-use crate::icmp::icmp_1_header_0_type::IcmpType::{V4, V6};
+use crate::icmp::icmp_1_header_0_type_v4::IcmpTypeV4;
 use crate::icmp::icmp_1_header_0_type_v6::IcmpTypeV6;
+use crate::icmp::icmp_1_header_1_code::IcmpCode;
+use crate::icmp::icmp_1_header_0_type::IcmpType::{V4, V6};
+use crate::icmp::icmp_1_header_2_checksum::IcmpChecksum;
+use std::borrow::Cow;
+use std::mem::size_of;
 
 type IdentifierType = u16;
 type SequenceNumType = u16;
