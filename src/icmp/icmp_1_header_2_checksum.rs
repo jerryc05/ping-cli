@@ -43,7 +43,8 @@ impl IcmpChecksum {
   pub unsafe fn gen_checksum_unchecked(icmp: &mut dyn Icmp) {
     debug_assert!(icmp.checksum().is_none());
     let vec_icmp = Vec::from(icmp as &dyn Icmp);
-    icmp.set_checksum(Some(Self(checksum_impl(vec_icmp.as_slice()))));
+    let checksum = checksum_impl(vec_icmp.as_slice());
+    icmp.set_checksum(Some(Self(checksum)));
   }
 }
 

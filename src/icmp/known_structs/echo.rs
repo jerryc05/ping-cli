@@ -83,9 +83,18 @@ impl Icmp for EchoRequestIcmpV4<'_> {
 }
 
 impl<'a> EchoRequestIcmpV4<'a> {
-  pub const fn new(identifier: IdentifierType,
-             sequence_num: SequenceNumType, payload: Cow<'a, [u8]>, ) -> Self {
-    Self(EchoIcmp { checksum: None, identifier, sequence_num, payload })
+  pub fn new<T: Into<Cow<'a, [u8]>>>(identifier: IdentifierType,
+                                     sequence_num: SequenceNumType,
+                                     payload: T) -> Self {
+    Self(EchoIcmp {
+      checksum: None,
+      identifier,
+      sequence_num,
+      payload: payload.into(),
+    })
+  }
+  pub fn from_payload<T: Into<Cow<'a, [u8]>>>(payload: T) -> Self {
+    Self::new(0, 0, payload)
   }
 }
 
@@ -141,7 +150,7 @@ impl Icmp for EchoRequestIcmpV6<'_> {
 
 impl<'a> EchoRequestIcmpV6<'a> {
   pub const fn new(identifier: IdentifierType,
-             sequence_num: SequenceNumType, payload: Cow<'a, [u8]>, ) -> Self {
+                   sequence_num: SequenceNumType, payload: Cow<'a, [u8]>, ) -> Self {
     Self(EchoIcmp { checksum: None, identifier, sequence_num, payload })
   }
 }
