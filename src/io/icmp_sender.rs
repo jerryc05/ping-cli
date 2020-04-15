@@ -1,5 +1,5 @@
 use std::net::{SocketAddr, IpAddr};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 use crate::icmp::icmp_0_trait::Icmp;
 use socket2::{Socket, Domain, Type, Protocol};
 use std::io::Error;
@@ -41,7 +41,7 @@ impl PingTimeout {
 
 pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
             ttl_opt: Option<u32>, icmp: &mut dyn Icmp,
-) -> Result<(), (Error, &'static str, u32)> {
+) -> Result<Duration, (Error, &'static str, u32)> {
   let socket = {
     let domain;
     let protocol;
@@ -58,9 +58,11 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
     Socket::new(domain, Type::raw(), protocol)
       .map_err(|err| (err, file!(), line!()))?
   };
+  let timer;
+  let duration;
 
   /* send */
-  let len;
+  let mut recv_buf;
   {
     let ttl = ttl_opt.unwrap_or(DEFAULT_TTL);
     socket.set_ttl(ttl).map_err(|err| (err, file!(), line!()))?;
@@ -86,30 +88,34 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
       }
     }
 
-    let send_buf = Vec::from(icmp as &dyn Icmp);
-    len = send_buf.len();
+    /* buffers */
+    let send_buf;
+    {
+      send_buf = Vec::from(icmp as &dyn Icmp);
+
+      {
+        let capacity = IPV4_HEADER_SIZE + send_buf.len();
+        recv_buf = Vec::with_capacity(capacity);
+        unsafe { recv_buf.set_len(capacity); }
+        debug_assert!(!recv_buf.as_slice().is_empty());
+      };
+    }
 
     let dest = SocketAddr::new(addr, 0);
+    timer = Instant::now();
     let size = socket.send_to(&send_buf, &dest.into())
                      .map_err(|err| (err, file!(), line!()))?;
-    debug_assert_eq!(size, len);
+    debug_assert_eq!(size, send_buf.len());
   }
 
   /* recv */{
-    let mut recv_buf = {
-      let capacity = len + IPV4_HEADER_SIZE;
-      let mut vec = Vec::with_capacity(capacity);
-      unsafe { vec.set_len(capacity); }
-      debug_assert!(!vec.as_slice().is_empty());
-      vec
-    };
-
     let (size, addr) = socket.recv_from(&mut recv_buf)
                              .map_err(|err| (err, file!(), line!()))?;
-    dbg!(size,addr);
+    duration = timer.elapsed();
+    dbg!(size, addr, duration);
     debug_assert_eq!(size, recv_buf.len());
 
-    for b in &recv_buf[0..size] {
+    for b in &recv_buf[IPV4_HEADER_SIZE..size] {
       print!("{:02x} ", *b);
     }
     println!();
@@ -133,5 +139,5 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
   //     }
   //   };
 
-  Ok(())
+  Ok(duration)
 }

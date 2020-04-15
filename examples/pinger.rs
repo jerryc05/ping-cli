@@ -1,8 +1,8 @@
+use ping_cli::icmp::known_structs::echo::EchoRequestIcmpV4;
 use ping_cli::io::icmp_sender::{ping, PingTimeout};
+use std::io::Error;
 use std::net::Ipv4Addr;
 use std::time::Duration;
-use ping_cli::icmp::known_structs::echo::EchoRequestIcmpV4;
-use std::io::Error;
 
 fn main() -> Result<(), (Error, &'static str, u32)> {
   let mut icmp = EchoRequestIcmpV4::from_payload([].as_ref());
