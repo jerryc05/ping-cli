@@ -117,6 +117,7 @@ fn test_icmp_type_v6_to_u8() {
 //   assert_eq!(255_u8, (&_Reserved255).into());
 }
 
+#[allow(unused_mut, clippy::fallible_impl_from)]
 impl From<u8> for IcmpTypeV6 {
   fn from(mut num: u8) -> Self {
     /* special cases */ {

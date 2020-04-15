@@ -1,6 +1,6 @@
 use crate::icmp::icmp_1_header_0_type::IcmpType;
 use crate::icmp::icmp_1_header_1_code::IcmpCode;
-use crate::icmp::icmp_1_header_2_checksum::{IcmpChecksum, ChecksumIsNotNoneError};
+use crate::icmp::icmp_1_header_2_checksum::IcmpChecksum;
 use std::borrow::Cow;
 
 /**
@@ -24,31 +24,6 @@ pub trait Icmp {
   fn set_checksum(&mut self, checksum: Option<IcmpChecksum>);
 
   fn data<'a>(&self) -> Cow<'a, [u8]>;
-}
-
-impl dyn Icmp {
-  pub fn gen_checksum(&mut self) -> Result<(), ChecksumIsNotNoneError> {
-    if self.checksum().is_some() {
-      return Err(ChecksumIsNotNoneError);
-    }
-
-    unsafe { self.gen_checksum_unchecked(); }
-    Ok(())
-  }
-
-  pub fn override_checksum(&mut self) {
-    if self.checksum().is_some() {
-      self.set_checksum(None);
-    }
-
-    unsafe { self.gen_checksum_unchecked(); }
-  }
-
-  /// # Safety
-  /// This function will not check whether `self.checksum` is None.
-  pub unsafe fn gen_checksum_unchecked(&mut self) {
-    IcmpChecksum::checksum_unchecked(self);
-  }
 }
 
 impl From<&dyn Icmp> for Vec<u8> {

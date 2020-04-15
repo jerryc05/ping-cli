@@ -82,6 +82,13 @@ impl Icmp for EchoRequestIcmpV4<'_> {
   }
 }
 
+impl<'a> EchoRequestIcmpV4<'a> {
+  pub const fn new(identifier: IdentifierType,
+             sequence_num: SequenceNumType, payload: Cow<'a, [u8]>, ) -> Self {
+    Self(EchoIcmp { checksum: None, identifier, sequence_num, payload })
+  }
+}
+
 pub struct EchoReplyIcmpV4<'a>(EchoIcmp<'a>);
 
 impl Icmp for EchoReplyIcmpV4<'_> {
@@ -129,6 +136,13 @@ impl Icmp for EchoRequestIcmpV6<'_> {
 
   fn data<'a>(&self) -> Cow<'a, [u8]> {
     self.0.data()
+  }
+}
+
+impl<'a> EchoRequestIcmpV6<'a> {
+  pub const fn new(identifier: IdentifierType,
+             sequence_num: SequenceNumType, payload: Cow<'a, [u8]>, ) -> Self {
+    Self(EchoIcmp { checksum: None, identifier, sequence_num, payload })
   }
 }
 
