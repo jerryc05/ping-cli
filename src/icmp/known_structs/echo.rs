@@ -73,7 +73,7 @@ impl Icmp for EchoRequestIcmpV4<'_> {
     self.0.checksum()
   }
 
-  fn checksum_mut(&mut self, checksum: Option<IcmpChecksum>) {
+  fn set_checksum(&mut self, checksum: Option<IcmpChecksum>) {
     self.0.checksum_mut(checksum)
   }
 
@@ -97,7 +97,7 @@ impl Icmp for EchoReplyIcmpV4<'_> {
     self.0.checksum()
   }
 
-  fn checksum_mut(&mut self, checksum: Option<IcmpChecksum>) {
+  fn set_checksum(&mut self, checksum: Option<IcmpChecksum>) {
     self.0.checksum_mut(checksum)
   }
 
@@ -123,7 +123,7 @@ impl Icmp for EchoRequestIcmpV6<'_> {
     self.0.checksum()
   }
 
-  fn checksum_mut(&mut self, checksum: Option<IcmpChecksum>) {
+  fn set_checksum(&mut self, checksum: Option<IcmpChecksum>) {
     self.0.checksum_mut(checksum)
   }
 
@@ -147,7 +147,7 @@ impl Icmp for EchoReplyIcmpV6<'_> {
     self.0.checksum()
   }
 
-  fn checksum_mut(&mut self, checksum: Option<IcmpChecksum>) {
+  fn set_checksum(&mut self, checksum: Option<IcmpChecksum>) {
     self.0.checksum_mut(checksum)
   }
 

@@ -21,7 +21,7 @@ pub trait Icmp {
   fn code(&self) -> IcmpCode;
 
   fn checksum(&self) -> Option<IcmpChecksum>;
-  fn checksum_mut(&mut self, checksum: Option<IcmpChecksum>);
+  fn set_checksum(&mut self, checksum: Option<IcmpChecksum>);
 
   fn data<'a>(&self) -> Cow<'a, [u8]>;
 }
@@ -34,6 +34,14 @@ impl dyn Icmp {
 
     unsafe { self.gen_checksum_unchecked(); }
     Ok(())
+  }
+
+  pub fn override_checksum(&mut self) {
+    if self.checksum().is_some() {
+      self.set_checksum(None);
+    }
+
+    unsafe { self.gen_checksum_unchecked(); }
   }
 
   /// # Safety
