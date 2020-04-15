@@ -112,13 +112,17 @@ fn test_icmp_type_v6_to_u8() {
 //   assert_eq!(3_u8, (&DestinationUnreachable).into());
 //   assert_eq!(16_u8, (&_InformationReply).into());
 //   assert!(19_u8 <= (&_Reserved19To29).into() && 29_u8 >= (&_Reserved19To29).into());
+  assert_eq!(128_u8, (&EchoRequest).into());
+  assert_eq!(129_u8, (&EchoReply).into());
 //   assert_eq!(255_u8, (&_Reserved255).into());
 }
 
 impl From<u8> for IcmpTypeV6 {
   fn from(mut num: u8) -> Self {
     /* special cases */ {
-      unimplemented!()
+      if num != 128 && num != 129 {
+        unimplemented!()
+      }
     }
 
     unsafe { transmute(num) }
@@ -136,5 +140,7 @@ fn test_u8_to_icmp_type_v6() {
 //   for i in 19..=29 {
 //     assert_eq!(_Reserved19To29, IcmpTypeV6::from(i));
 //   }
+  assert_eq!(EchoRequest, IcmpTypeV6::from(128));
+  assert_eq!(EchoReply, IcmpTypeV6::from(129));
 //   assert_eq!(_Reserved255, IcmpTypeV6::from(255));
 }

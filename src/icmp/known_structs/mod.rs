@@ -1,3 +1,3 @@
 pub mod dest_unreachable;
-pub mod echo_and_reply;
+pub mod echo;
 pub mod time_exceeded;

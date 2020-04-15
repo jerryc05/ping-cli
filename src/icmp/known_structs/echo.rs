@@ -12,14 +12,14 @@ type IdentifierType = u16;
 type SequenceNumType = u16;
 
 #[derive(Debug)]
-struct EchoAndReplyIcmp<'a> {
+struct EchoIcmp<'a> {
   checksum: Option<IcmpChecksum>,
   identifier: IdentifierType,
   sequence_num: SequenceNumType,
   payload: Cow<'a, [u8]>,
 }
 
-impl EchoAndReplyIcmp<'_> {
+impl EchoIcmp<'_> {
   #[inline]
   const fn code(&self) -> IcmpCode {
     IcmpCode(0)
@@ -56,11 +56,11 @@ impl EchoAndReplyIcmp<'_> {
   }
 }
 
-// Separator
+// Separator V4
 
-pub struct EchoIcmpV4<'a>(EchoAndReplyIcmp<'a>);
+pub struct EchoRequestIcmpV4<'a>(EchoIcmp<'a>);
 
-impl Icmp for EchoIcmpV4<'_> {
+impl Icmp for EchoRequestIcmpV4<'_> {
   fn type_(&self) -> IcmpType {
     V4(IcmpTypeV4::Echo)
   }
@@ -82,7 +82,7 @@ impl Icmp for EchoIcmpV4<'_> {
   }
 }
 
-pub struct EchoReplyIcmpV4<'a>(EchoAndReplyIcmp<'a>);
+pub struct EchoReplyIcmpV4<'a>(EchoIcmp<'a>);
 
 impl Icmp for EchoReplyIcmpV4<'_> {
   fn type_(&self) -> IcmpType {
@@ -106,12 +106,11 @@ impl Icmp for EchoReplyIcmpV4<'_> {
   }
 }
 
-// Separator
+// Separator V6
 
+pub struct EchoRequestIcmpV6<'a>(EchoIcmp<'a>);
 
-pub struct EchoIcmpV6<'a>(EchoAndReplyIcmp<'a>);
-
-impl Icmp for EchoIcmpV6<'_> {
+impl Icmp for EchoRequestIcmpV6<'_> {
   fn type_(&self) -> IcmpType {
     V6(IcmpTypeV6::EchoRequest)
   }
@@ -133,7 +132,7 @@ impl Icmp for EchoIcmpV6<'_> {
   }
 }
 
-pub struct EchoReplyIcmpV6<'a>(EchoAndReplyIcmp<'a>);
+pub struct EchoReplyIcmpV6<'a>(EchoIcmp<'a>);
 
 impl Icmp for EchoReplyIcmpV6<'_> {
   fn type_(&self) -> IcmpType {
