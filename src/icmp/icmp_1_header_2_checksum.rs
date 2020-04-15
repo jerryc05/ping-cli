@@ -21,7 +21,26 @@ impl DerefMut for IcmpChecksum {
 pub struct ChecksumIsNotNoneError;
 
 impl IcmpChecksum {
-  pub(crate) unsafe fn checksum_unchecked(icmp: &mut dyn Icmp) {
+  pub fn gen_checksum(icmp: &mut dyn Icmp) -> Result<(), ChecksumIsNotNoneError> {
+    if icmp.checksum().is_some() {
+      return Err(ChecksumIsNotNoneError);
+    }
+
+    unsafe { Self::gen_checksum_unchecked(icmp); }
+    Ok(())
+  }
+
+  pub fn override_checksum(icmp: &mut dyn Icmp) {
+    if icmp.checksum().is_some() {
+      icmp.set_checksum(None);
+    }
+
+    unsafe { Self::gen_checksum_unchecked(icmp); }
+  }
+
+  /// # Safety
+  /// This function will not check whether `self.checksum` is None.
+  pub unsafe fn gen_checksum_unchecked(icmp: &mut dyn Icmp) {
     debug_assert!(icmp.checksum().is_none());
     let vec_icmp = Vec::from(icmp as &dyn Icmp);
     icmp.set_checksum(Some(Self(checksum_impl(vec_icmp.as_slice()))));
