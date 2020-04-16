@@ -1,11 +1,11 @@
-use std::net::{SocketAddr, IpAddr};
-use std::time::{Duration, Instant};
 use crate::icmp::icmp_0_trait::Icmp;
+use crate::icmp::icmp_1_header_2_checksum::IcmpChecksum;
+use crate::utils::is_debug;
 use socket2::{Socket, Domain, Type, Protocol};
 use std::io::Error;
-use crate::utils::is_debug;
-use crate::icmp::icmp_1_header_2_checksum::IcmpChecksum;
+use std::net::{SocketAddr, IpAddr};
 use std::ops::Deref;
+use std::time::{Duration, Instant};
 
 const DEFAULT_TIMEOUT: Option<Duration> = Some(Duration::from_secs(4));
 const DEFAULT_TTL: u32 = 64;
