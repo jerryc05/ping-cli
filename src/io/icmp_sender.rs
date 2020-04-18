@@ -62,7 +62,7 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
       }
     };
     Socket::new(domain, Type::raw(), protocol).map_err(
-      |err| MyErr::from((&err, file!(), line!())))?
+      |err| MyErr::from((&err, file!(), line!()-1)))?
   };
   let timer;
   let duration;
@@ -112,7 +112,7 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
     let dest = SocketAddr::new(addr, 0);
     timer = Instant::now();
     let size = socket.send_to(&send_buf, &dest.into()).map_err(
-      |err| MyErr::from((&err, file!(), line!())))?;
+      |err| MyErr::from((&err, file!(), line!()-1)))?;
     debug_assert_eq!(size, send_buf.len());
   }
 
