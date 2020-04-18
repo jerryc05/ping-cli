@@ -12,36 +12,28 @@ use std::sync::atomic::{AtomicU16, Ordering};
 static SEQUENCE_COUNTER: AtomicU16 = AtomicU16::new(1);
 
 #[derive(Debug)]
-struct EchoIcmp<'a> {
+pub struct EchoIcmp<'a> {
+  type_: IcmpType,
   checksum: Option<IcmpChecksum>,
   identifier: u16,
   sequence_num: u16,
-  payload: Cow<'a, [u8]>,
+  pub(crate) payload: Cow<'a, [u8]>,
 }
 
-impl<'a> EchoIcmp<'a> {
-  #[inline]
-  fn new<T: Into<Cow<'a, [u8]>>>(identifier: u16, payload: T) -> Self {
-    EchoIcmp {
-      checksum: None,
-      identifier,
-      sequence_num: SEQUENCE_COUNTER.fetch_add(1, Ordering::Relaxed),
-      payload: payload.into(),
-    }
+impl<'a> Icmp<'a> for EchoIcmp<'a> {
+  fn type_(&self) -> IcmpType {
+    self.type_
   }
 
-  #[inline]
-  const fn code(&self) -> IcmpCode {
+  fn code(&self) -> IcmpCode {
     IcmpCode(0)
   }
 
-  #[inline]
-  const fn checksum(&self) -> Option<IcmpChecksum> {
+  fn checksum(&self) -> Option<IcmpChecksum> {
     self.checksum
   }
 
-  #[inline]
-  fn checksum_mut(&mut self, checksum: Option<IcmpChecksum>) {
+  fn set_checksum(&mut self, checksum: Option<IcmpChecksum>) {
     self.checksum = checksum;
   }
 
@@ -66,122 +58,54 @@ impl<'a> EchoIcmp<'a> {
   }
 }
 
-// Separator V4
-
-pub struct EchoRequestIcmpV4<'a>(EchoIcmp<'a>);
-
-impl<'a> Icmp<'a> for EchoRequestIcmpV4<'a> {
-  fn type_(&self) -> IcmpType {
-    V4(IcmpTypeV4::Echo)
-  }
-
-  fn code(&self) -> IcmpCode {
-    self.0.code()
-  }
-
-  fn checksum(&self) -> Option<IcmpChecksum> {
-    self.0.checksum()
-  }
-
-  fn set_checksum(&mut self, checksum: Option<IcmpChecksum>) {
-    self.0.checksum_mut(checksum)
-  }
-
-  fn data(&self) -> Cow<'a, [u8]> {
-    self.0.data()
+// internal
+impl<'a> EchoIcmp<'a> {
+  #[inline]
+  fn new_<T: Into<Cow<'a, [u8]>>>(type_: IcmpType, identifier: u16, payload: T) -> Self {
+    Self {
+      type_,
+      checksum: None,
+      identifier,
+      sequence_num: SEQUENCE_COUNTER.fetch_add(1, Ordering::Relaxed),
+      payload: payload.into(),
+    }
   }
 }
 
-impl<'a> EchoRequestIcmpV4<'a> {
-  pub fn new<T: Into<Cow<'a, [u8]>>>(identifier: u16, payload: T) -> Self {
-    Self(EchoIcmp::new(identifier, payload))
+// V4
+pub type EchoIcmpV4<'a> = EchoIcmp<'a>;
+
+impl<'a> EchoIcmpV4<'a> {
+  const REQUEST_TYPE_V4: IcmpType = V4(IcmpTypeV4::Echo);
+
+  pub fn new_v4<T: Into<Cow<'a, [u8]>>>(identifier: u16, payload: T) -> Self {
+    Self::new_(Self::REQUEST_TYPE_V4, identifier, payload)
   }
 
-  pub fn from_payload<T: Into<Cow<'a, [u8]>>>(payload: T) -> Self {
-    Self::new(1, payload)
-  }
-}
-
-pub struct EchoReplyIcmpV4<'a>(EchoIcmp<'a>);
-
-impl<'a> Icmp<'a> for EchoReplyIcmpV4<'a> {
-  fn type_(&self) -> IcmpType {
-    V4(IcmpTypeV4::EchoReply)
+  pub fn from_payload_v4<T: Into<Cow<'a, [u8]>>>(payload: T) -> Self {
+    Self::new_(Self::REQUEST_TYPE_V4, 1, payload)
   }
 
-  fn code(&self) -> IcmpCode {
-    self.0.code()
-  }
-
-  fn checksum(&self) -> Option<IcmpChecksum> {
-    self.0.checksum()
-  }
-
-  fn set_checksum(&mut self, checksum: Option<IcmpChecksum>) {
-    self.0.checksum_mut(checksum)
-  }
-
-  fn data(&self) -> Cow<'a, [u8]> {
-    self.0.data()
+  pub fn from_reply_v4<T: Into<Cow<'a, [u8]>>>(_reply: T) -> Self {
+    todo!()
   }
 }
 
-// Separator V6
+// V6
+pub type EchoIcmpV6<'a> = EchoIcmp<'a>;
 
-pub struct EchoRequestIcmpV6<'a>(EchoIcmp<'a>);
+impl<'a> EchoIcmpV6<'a> {
+  const REQUEST_TYPE_V6: IcmpType = V6(IcmpTypeV6::EchoRequest);
 
-impl<'a> Icmp<'a> for EchoRequestIcmpV6<'a> {
-  fn type_(&self) -> IcmpType {
-    V6(IcmpTypeV6::EchoRequest)
+  pub fn new_v6<T: Into<Cow<'a, [u8]>>>(identifier: u16, payload: T) -> Self {
+    Self::new_(Self::REQUEST_TYPE_V6, identifier, payload)
   }
 
-  fn code(&self) -> IcmpCode {
-    self.0.code()
+  pub fn from_payload_v6<T: Into<Cow<'a, [u8]>>>(payload: T) -> Self {
+    Self::new_(Self::REQUEST_TYPE_V6, 1, payload)
   }
 
-  fn checksum(&self) -> Option<IcmpChecksum> {
-    self.0.checksum()
-  }
-
-  fn set_checksum(&mut self, checksum: Option<IcmpChecksum>) {
-    self.0.checksum_mut(checksum)
-  }
-
-  fn data(&self) -> Cow<'a, [u8]> {
-    self.0.data()
-  }
-}
-
-impl<'a> EchoRequestIcmpV6<'a> {
-  pub fn new<T: Into<Cow<'a, [u8]>>>(identifier: u16, payload: T) -> Self {
-    Self(EchoIcmp::new(identifier, payload))
-  }
-
-  pub fn from_payload<T: Into<Cow<'a, [u8]>>>(payload: T) -> Self {
-    Self::new(1, payload)
-  }
-}
-
-pub struct EchoReplyIcmpV6<'a>(EchoIcmp<'a>);
-
-impl<'a> Icmp<'a> for EchoReplyIcmpV6<'a> {
-  fn type_(&self) -> IcmpType {
-    V6(IcmpTypeV6::EchoReply)
-  }
-
-  fn code(&self) -> IcmpCode {
-    self.0.code()
-  }
-
-  fn checksum(&self) -> Option<IcmpChecksum> {
-    self.0.checksum()
-  }
-
-  fn set_checksum(&mut self, checksum: Option<IcmpChecksum>) {
-    self.0.checksum_mut(checksum)
-  }
-
-  fn data(&self) -> Cow<'a, [u8]> {
-    self.0.data()
+  pub fn from_reply_v6<T: Into<Cow<'a, [u8]>>>(_reply: T) -> Self {
+    todo!()
   }
 }

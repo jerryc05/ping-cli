@@ -1,4 +1,4 @@
-use ping_cli::icmp::known_structs::echo::EchoRequestIcmpV4;
+use ping_cli::icmp::known_structs::echo::EchoIcmpV4;
 use ping_cli::io::icmp_sender::{ping, PingTimeout};
 use ping_cli::utils::MyErr;
 use std::env::args;
@@ -20,7 +20,7 @@ fn main() -> Result<(), MyErr> {
     }
   };
 
-  let mut icmp = EchoRequestIcmpV4::from_payload([].as_ref());
+  let mut icmp = EchoIcmpV4::from_payload_v4([].as_ref());
 
   ping(addr,//todo
        PingTimeout::default(),

@@ -3,10 +3,10 @@ use crate::icmp::icmp_1_header_2_checksum::IcmpChecksum;
 use crate::utils::{is_debug, MyErr};
 use socket2::{Socket, Domain, Type, Protocol};
 use std::net::{SocketAddr, IpAddr};
-use std::ops::Deref;
 use std::time::{Duration, Instant};
 use std::borrow::Cow;
 use std::io::ErrorKind;
+use crate::icmp::known_structs::echo::EchoIcmp;
 
 const DEFAULT_TIMEOUT: Option<Duration> = Some(Duration::from_secs(4));
 const DEFAULT_TTL: u32 = 64;
@@ -20,14 +20,6 @@ pub struct PingTimeout(Option<Duration>);
 impl Default for PingTimeout {
   fn default() -> Self {
     Self(DEFAULT_TIMEOUT)
-  }
-}
-
-impl Deref for PingTimeout {
-  type Target = Option<Duration>;
-
-  fn deref(&self) -> &Self::Target {
-    &self.0
   }
 }
 
@@ -46,8 +38,7 @@ impl PingTimeout {
 }
 
 pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
-            ttl_opt: Option<u32>, icmp: &mut dyn Icmp,
-) -> Result<(), MyErr> {
+            ttl_opt: Option<u32>, icmp: &mut EchoIcmp) -> Result<(), MyErr> {
   let socket = {
     let domain;
     let protocol;
@@ -62,7 +53,7 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
       }
     };
     Socket::new(domain, Type::raw(), protocol).map_err(
-      |err| MyErr::from((&err, file!(), line!()-1)))?
+      |err| MyErr::from((&err, file!(), line!() - 1)))?
   };
   let timer;
   let duration;
@@ -96,11 +87,22 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
       }
     }
 
+    /* print before PING */
+    {
+      println!();
+      let bytes = icmp.payload.len();
+      println!("PING {} ({}) {}({}) bytes of data.",
+               addr.to_string(), // todo
+               addr.to_string(),
+               bytes, bytes + 28);
+    }
+
     /* buffers */
     let send_buf;
     {
       send_buf = Vec::from(icmp as &dyn Icmp);
 
+      /* configure recv_buf */
       {
         let capacity = IPV4_HEADER_SIZE + send_buf.len();
         recv_buf = Vec::with_capacity(capacity);
@@ -112,7 +114,7 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
     let dest = SocketAddr::new(addr, 0);
     timer = Instant::now();
     let size = socket.send_to(&send_buf, &dest.into()).map_err(
-      |err| MyErr::from((&err, file!(), line!()-1)))?;
+      |err| MyErr::from((&err, file!(), line!() - 1)))?;
     debug_assert_eq!(size, send_buf.len());
   }
 
@@ -127,7 +129,7 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
         print!("{:02x} ", *b);
       }
       println!();
-      println!("64 bytes from 93.184.216.34: icmp_seq=0 ttl=56 time=11.632 ms");
+      // println!("64 bytes from 93.184.216.34: icmp_seq=0 ttl=56 time=11.632 ms");
       println!("{} bytes from {}: icmp_seq={} ttl={} time={:.3} ms",
                "??",
                addr.as_std().map_or_else(
