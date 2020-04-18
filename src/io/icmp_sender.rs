@@ -71,10 +71,6 @@ Perhaps \"setcap cap_net_raw,cap_net_admin=eip\" or \"sudo\" is required.",
   /* send */
   let mut recv_buf;
   {
-    let ttl = ttl_opt.unwrap_or(DEFAULT_TTL);
-    socket.set_ttl(ttl).map_err(
-      |err| MyErr::from_err(&err, file!(), line!() - 1))?;
-
     let timeout = {
       if let Some(dur) = timeout_opt.0 {
         if dur == Duration::from_secs(0) { None } else { timeout_opt.0 }
@@ -83,6 +79,10 @@ Perhaps \"setcap cap_net_raw,cap_net_admin=eip\" or \"sudo\" is required.",
       }
     };
     socket.set_read_timeout(timeout).map_err(
+      |err| MyErr::from_err(&err, file!(), line!() - 1))?;
+
+    let ttl = ttl_opt.unwrap_or(DEFAULT_TTL);
+    socket.set_ttl(ttl).map_err(
       |err| MyErr::from_err(&err, file!(), line!() - 1))?;
 
     /* checksum */
