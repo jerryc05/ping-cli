@@ -21,4 +21,4 @@ jobs:
         run: cargo build -v
 
       - name: Run tests
-        run: sudo cargo test -v
+        run: cargo test -v
