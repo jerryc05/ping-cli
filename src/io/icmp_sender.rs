@@ -155,13 +155,13 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
       }
     }
 
-    Err(err) => {
-      if err.kind() == ErrorKind::TimedOut {
-        println!("Request timed out.")
-      } else {
-        return Err(MyErr::from((&err, file!(), line!() - 1)));
-      };
-    }
+    Err(err) =>
+      match err.kind() {
+        ErrorKind::TimedOut => println!("Request timed out."),
+        ErrorKind::PermissionDenied => println!("Permission Denied. \
+Perhaps \"setcap cap_net_raw,cap_net_admin=eip\" or \"sudo\" is required."),
+        _ => return Err(MyErr::from((&err, file!(), line!() - 1)))
+      }
   };
 
   /*
