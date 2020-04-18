@@ -6,25 +6,24 @@ use std::net::Ipv4Addr;
 
 fn main() -> Result<(), MyErr> {
   /* parse addr */
-  let addr;
-  {
+  let addr = {
     let mut args = args();
     args.next();
 
-    addr = match args.next(){
-      Some(addr_str)=>addr_str.parse().map_err(
+    match args.next() {
+      Some(addr_str) => addr_str.parse().map_err(
         |err| MyErr::from((&err, file!(), line!() - 1)))?,
-      None=>{
+      None => {
         eprintln!("No IP address specified! Using default [1.1.1.1]!");
         Ipv4Addr::new(1, 1, 1, 1).into()
       }
     }
-  }
+  };
 
   let mut icmp = EchoRequestIcmpV4::from_payload([].as_ref());
 
   ping(addr,//todo
-       PingTimeout::from_ms(100),
+       PingTimeout::default(),
        None, &mut icmp)?;
 
   Ok(())
