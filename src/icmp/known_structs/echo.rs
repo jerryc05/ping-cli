@@ -11,12 +11,26 @@ use std::sync::atomic::{AtomicU16, Ordering};
 
 static SEQUENCE_COUNTER: AtomicU16 = AtomicU16::new(1);
 
+/**
+[RFC 792](https://tools.ietf.org/html/rfc792)
+
+  0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+|         type_         |         code          |
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+|                   checksum                    |
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+|      identifier       |        seq_num        |
++--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+|   payload ...
++--+--+--+--+--
+*/
 #[derive(Debug)]
 pub struct EchoIcmp<'a> {
   type_: IcmpType,
   checksum: Option<IcmpChecksum>,
   identifier: u16,
-  sequence_num: u16,
+  seq_num: u16,
   pub(crate) payload: Cow<'a, [u8]>,
 }
 
@@ -39,7 +53,7 @@ impl<'a> Icmp<'a> for EchoIcmp<'a> {
 
   fn data(&self) -> Cow<'a, [u8]> {
     let mut vec = Vec::with_capacity(self.payload.len() +
-      size_of_val(&self.identifier) + size_of_val(&self.sequence_num)
+      size_of_val(&self.identifier) + size_of_val(&self.seq_num)
     );
 
     /* identifier */ {
@@ -47,7 +61,7 @@ impl<'a> Icmp<'a> for EchoIcmp<'a> {
     }
 
     /* sequence_num */ {
-      vec.extend(self.sequence_num.to_be_bytes().iter());
+      vec.extend(self.seq_num.to_be_bytes().iter());
     }
 
     /* other_data */ {
@@ -55,20 +69,6 @@ impl<'a> Icmp<'a> for EchoIcmp<'a> {
     }
 
     vec.into()
-  }
-}
-
-// internal
-impl<'a> EchoIcmp<'a> {
-  #[inline]
-  fn new_<T: Into<Cow<'a, [u8]>>>(type_: IcmpType, identifier: u16, payload: T) -> Self {
-    Self {
-      type_,
-      checksum: None,
-      identifier,
-      sequence_num: SEQUENCE_COUNTER.fetch_add(1, Ordering::Relaxed),
-      payload: payload.into(),
-    }
   }
 }
 
@@ -107,5 +107,34 @@ impl<'a> EchoIcmpV6<'a> {
 
   pub fn from_reply_v6<T: Into<Cow<'a, [u8]>>>(_reply: T) -> Self {
     todo!()
+  }
+}
+
+// EchoIcmp impls
+impl<'a> EchoIcmp<'a> {
+  #[inline]
+  fn new_<T: Into<Cow<'a, [u8]>>>(type_: IcmpType, identifier: u16, payload: T) -> Self {
+    Self {
+      type_,
+      checksum: None,
+      identifier,
+      seq_num: SEQUENCE_COUNTER.fetch_add(1, Ordering::Relaxed),
+      payload: payload.into(),
+    }
+  }
+
+  #[inline]
+  pub fn parse_identifier(bytes: &[u8]) -> Option<u8> {
+    bytes.get(4).copied()
+  }
+
+  #[inline]
+  pub fn parse_seq_num(bytes: &[u8]) -> Option<u8> {
+    bytes.get(5).copied()
+  }
+
+  #[inline]
+  pub fn parse_payload(bytes: &[u8]) -> &[u8] {
+    &bytes[6..]
   }
 }
