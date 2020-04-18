@@ -55,7 +55,15 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
       }
     };
     Socket::new(domain, Type::raw(), protocol).map_err(
-      |err| MyErr::from_err(&err, file!(), line!() - 1))?
+      |err| if err.kind() == ErrorKind::PermissionDenied {
+        MyErr::from_str(
+          "Permission Denied. \
+Perhaps \"setcap cap_net_raw,cap_net_admin=eip\" or \"sudo\" is required.",
+          file!(), line!() - 5)
+      } else {
+        MyErr::from_err(&err, file!(), line!() - 7)
+      }
+    )?
   };
   let timer;
   let duration;
@@ -155,17 +163,11 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
       }
     }
 
-    Err(err) =>
-      match err.kind() {
-        ErrorKind::TimedOut => println!("Request timed out."),
-
-        ErrorKind::PermissionDenied => return Err(MyErr::from_str(
-          "Permission Denied. \
-Perhaps \"setcap cap_net_raw,cap_net_admin=eip\" or \"sudo\" is required.",
-          file!(), line!() - 3)),
-
-        _ => return Err(MyErr::from_err(&err, file!(), line!() - 1))
-      }
+    Err(err) => if err.kind() == ErrorKind::TimedOut {
+      println!("Request timed out.");
+    } else {
+      return Err(MyErr::from_err(&err, file!(), line!() - 1));
+    }
   };
 
   /*
