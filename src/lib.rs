@@ -1,3 +1,6 @@
+#![feature(backtrace)]
+#![feature(in_band_lifetimes)]
+
 pub mod icmp;
-mod utils;
+pub mod utils;
 pub mod io;

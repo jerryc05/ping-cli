@@ -1,8 +1,7 @@
 use crate::icmp::icmp_0_trait::Icmp;
 use crate::icmp::icmp_1_header_2_checksum::IcmpChecksum;
-use crate::utils::is_debug;
+use crate::utils::{is_debug, MyErr};
 use socket2::{Socket, Domain, Type, Protocol};
-use std::io::Error;
 use std::net::{SocketAddr, IpAddr};
 use std::ops::Deref;
 use std::time::{Duration, Instant};
@@ -31,9 +30,14 @@ impl Deref for PingTimeout {
 }
 
 impl PingTimeout {
-  pub fn new(dur: Duration) -> Self {
+  pub fn from_ms(ms: u64) -> Self {
+    Self::from_duration(Duration::from_millis(ms))
+  }
+
+  pub fn from_duration(dur: Duration) -> Self {
     Self(Some(dur))
   }
+
   pub const fn forever() -> Self {
     Self(None)
   }
@@ -41,7 +45,7 @@ impl PingTimeout {
 
 pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
             ttl_opt: Option<u32>, icmp: &mut dyn Icmp,
-) -> Result<Duration, (Error, &'static str, u32)> {
+) -> Result<Duration, MyErr> {
   let socket = {
     let domain;
     let protocol;
@@ -55,8 +59,8 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
         protocol = Some(Protocol::icmpv6());
       }
     };
-    Socket::new(domain, Type::raw(), protocol)
-      .map_err(|err| (err, file!(), line!()))?
+    Socket::new(domain, Type::raw(), protocol).map_err(
+      |err| MyErr::from((&err, file!(), line!())))?
   };
   let timer;
   let duration;
@@ -65,7 +69,8 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
   let mut recv_buf;
   {
     let ttl = ttl_opt.unwrap_or(DEFAULT_TTL);
-    socket.set_ttl(ttl).map_err(|err| (err, file!(), line!()))?;
+    socket.set_ttl(ttl).map_err(
+      |err| MyErr::from((&err, file!(), line!() - 1)))?;
 
     let timeout = {
       if let Some(dur) = timeout_opt.0 {
@@ -74,7 +79,8 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
         DEFAULT_TIMEOUT
       }
     };
-    socket.set_read_timeout(timeout).map_err(|err| (err, file!(), line!()))?;
+    socket.set_read_timeout(timeout).map_err(
+      |err|MyErr::from( (&err, file!(), line!() - 1)))?;
 
     /* checksum */
     {
@@ -103,14 +109,14 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
 
     let dest = SocketAddr::new(addr, 0);
     timer = Instant::now();
-    let size = socket.send_to(&send_buf, &dest.into())
-                     .map_err(|err| (err, file!(), line!()))?;
+    let size = socket.send_to(&send_buf, &dest.into()).map_err(
+      |err| MyErr::from((&err, file!(), line!())))?;
     debug_assert_eq!(size, send_buf.len());
   }
 
   /* recv */{
-    let (size, addr) = socket.recv_from(&mut recv_buf)
-                             .map_err(|err| (err, file!(), line!()))?;
+    let (size, addr) = socket.recv_from(&mut recv_buf).map_err(
+      |err| MyErr::from((&err, file!(), line!())))?;
     duration = timer.elapsed();
     dbg!(size, addr, duration);
     debug_assert_eq!(size, recv_buf.len());
