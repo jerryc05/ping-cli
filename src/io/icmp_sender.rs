@@ -1,7 +1,7 @@
 use crate::icmp::known_structs::echo::EchoIcmp;
 use crate::icmp::icmp_0_trait::Icmp;
 use crate::icmp::icmp_1_header_2_checksum::IcmpChecksum;
-use crate::utils::{is_debug, MyErr};
+use crate::utils::{is_debug, MyErr, CONSOLE_FMT_WIDTH};
 use socket2::{Socket, Domain, Type, Protocol};
 use std::net::{SocketAddr, IpAddr};
 use std::time::{Duration, Instant};
@@ -40,7 +40,7 @@ impl PingTimeout {
 // Separator
 
 pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
-            ttl_opt: Option<u32>, icmp: &mut EchoIcmp) -> Result<(), MyErr> {
+            ttl_opt: Option<u32>, echo_icmp: &mut EchoIcmp) -> Result<(), MyErr> {
   let socket = {
     let domain;
     let protocol;
@@ -80,19 +80,19 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
     /* checksum */
     {
       if is_debug() {
-        IcmpChecksum::gen_checksum(icmp).unwrap_or_else(|_| {
+        IcmpChecksum::gen_checksum(echo_icmp).unwrap_or_else(|_| {
           eprintln!("Unexpected overwriting checksum! Please report this bug!");
-          IcmpChecksum::override_checksum(icmp);
+          IcmpChecksum::override_checksum(echo_icmp);
         });
       } else {
-        IcmpChecksum::override_checksum(icmp);
+        IcmpChecksum::override_checksum(echo_icmp);
       }
     }
 
     /* print before PING */
     {
       println!();
-      let bytes = icmp.payload.len();
+      let bytes = echo_icmp.payload.len();
       println!("PING {} ({}) {}({}) bytes of data.",
                addr.to_string(), // todo
                addr.to_string(),
@@ -102,11 +102,14 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
     /* buffers */
     let send_buf;
     {
-      send_buf = Vec::from(icmp as &dyn Icmp);
+      send_buf = Vec::from(echo_icmp as &dyn Icmp);
 
       /* configure recv_buf */
       {
-        let capacity = IPV4_HEADER_SIZE + send_buf.len();
+        let capacity = match addr {
+          IpAddr::V4(_) => send_buf.len() + IPV4_HEADER_SIZE,
+          IpAddr::V6(_) => send_buf.len(),
+        };
         recv_buf = Vec::with_capacity(capacity);
         unsafe { recv_buf.set_len(capacity); }
         debug_assert!(!recv_buf.as_slice().is_empty());
@@ -122,23 +125,26 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
 
   /* recv */
   match socket.recv_from(&mut recv_buf) {
-    Ok((size, addr)) => {
+    Ok((size, sock_addr)) => {
       duration = timer.elapsed();
       debug_assert_eq!(size, recv_buf.len());
 
-      let icmp_recv = &recv_buf[IPV4_HEADER_SIZE..size];
+      let icmp_recv = match addr {
+        IpAddr::V4(_) => &recv_buf[IPV4_HEADER_SIZE..size],
+        IpAddr::V6(_) => &recv_buf,
+      };
 
       /* output */
       {
-        // if is_debug() {
-        //   for b in icmp_recv {
-        //     print!("{:02x} ", *b);
-        //   }
-        //   println!();
-        // }
+        if is_debug() {
+          for b in icmp_recv {
+            print!("{:02x} ", *b);
+          }
+          print!("\t");
+        }
         println!("{} bytes from {}: icmp_seq={} ttl={} time={:.3} ms",
                  icmp_recv.len(),
-                 addr.as_std().into_result().map_err(
+                 sock_addr.as_std().into_result().map_err(
                    |err| MyErr::from((&err, file!(), line!() - 1)))?
                    .ip(),
                  EchoIcmp::parse_seq_num(icmp_recv).into_result().map_err(
@@ -149,21 +155,45 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
       }
     }
 
-    Err(err) if err.kind() == ErrorKind::TimedOut => println!("Request timed out."),
-
-    Err(err) => return Err(MyErr::from((&err, file!(), line!() - 1))),
+    Err(err) => {
+      if err.kind() == ErrorKind::TimedOut {
+        println!("Request timed out.")
+      } else {
+        return Err(MyErr::from((&err, file!(), line!() - 1)));
+      };
+    }
   };
 
   /*
 
---- 1.1.1.1 ping statistics ---
-3 packets transmitted, 3 received, 0% packet loss, time 2002ms
-rtt min/avg/max/mdev = 1.413/1.686/2.086/0.289 ms
+  --- 1.1.1.1 ping statistics ---
+  3 packets transmitted, 3 received, 0% packet loss, time 2002ms
+  rtt min/avg/max/mdev = 1.413/1.686/2.086/0.289 ms
 
   */
 
   println!();
-  println!("{:-^50}","PING stopped here.");
+  println!("{1:-^0$}", CONSOLE_FMT_WIDTH, "PING stopped here.");
 
+  Ok(())
+}
+
+#[test]
+fn test_ipv4() -> Result<(), MyErr> {
+  use std::net::Ipv4Addr;
+  let mut echo_icmp = EchoIcmp::from_payload_v4([].as_ref());
+  ping(Ipv4Addr::LOCALHOST.into(),
+       PingTimeout::default(),
+       None, &mut echo_icmp)?;
+  Ok(())
+}
+
+#[test]
+fn test_ipv6() -> Result<(), MyErr> {
+  use std::net::Ipv6Addr;
+  let mut echo_icmp = EchoIcmp::from_payload_v6([].as_ref());
+  ping(Ipv6Addr::LOCALHOST.into(),
+       PingTimeout::default(),
+       None, &mut echo_icmp)?;
   Ok(())
 }

@@ -2,6 +2,8 @@
 
 use std::fmt::{Debug, Formatter, Result};
 
+pub(crate) const CONSOLE_FMT_WIDTH: usize = 50;
+
 #[inline]
 pub(crate) const fn is_debug() -> bool {
   cfg!(debug_assertions)
@@ -27,12 +29,13 @@ impl<T: Debug> From<(&T, &'static str, u32)> for MyErr {
 
 impl Debug for MyErr {
   fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+    const ERROR: &str = "ERROR";
     writeln!(f, "
-********** ERROR **********
-msg: [{:?}]
+{1:-^0$}
+msg: [{2:?}]
 
-at: [{}:{}]
-********** ERROR **********",
-             self.err, self.file, self.line)
+at: [{3}:{4}]
+{1:-^0$}",
+             CONSOLE_FMT_WIDTH, ERROR, self.err, self.file, self.line)
   }
 }

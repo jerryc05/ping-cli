@@ -73,9 +73,7 @@ impl<'a> Icmp<'a> for EchoIcmp<'a> {
 }
 
 // V4
-pub type EchoIcmpV4<'a> = EchoIcmp<'a>;
-
-impl<'a> EchoIcmpV4<'a> {
+impl<'a> EchoIcmp<'a> {
   const REQUEST_TYPE_V4: IcmpType = V4(IcmpTypeV4::Echo);
 
   pub fn new_v4<T: Into<Cow<'a, [u8]>>>(identifier: u16, payload: T) -> Self {
@@ -92,9 +90,7 @@ impl<'a> EchoIcmpV4<'a> {
 }
 
 // V6
-pub type EchoIcmpV6<'a> = EchoIcmp<'a>;
-
-impl<'a> EchoIcmpV6<'a> {
+impl<'a> EchoIcmp<'a> {
   const REQUEST_TYPE_V6: IcmpType = V6(IcmpTypeV6::EchoRequest);
 
   pub fn new_v6<T: Into<Cow<'a, [u8]>>>(identifier: u16, payload: T) -> Self {

@@ -1,8 +1,8 @@
-use ping_cli::icmp::known_structs::echo::EchoIcmpV4;
+use ping_cli::icmp::known_structs::echo::EchoIcmp;
 use ping_cli::io::icmp_sender::{ping, PingTimeout};
 use ping_cli::utils::MyErr;
 use std::env::args;
-use std::net::Ipv4Addr;
+use std::net::{Ipv4Addr, IpAddr};
 
 fn main() -> Result<(), MyErr> {
   /* parse addr */
@@ -15,16 +15,20 @@ fn main() -> Result<(), MyErr> {
         |err| MyErr::from((&err, file!(), line!() - 1)))?,
       None => {
         eprintln!("No IP address specified! Using default [1.1.1.1]!");
-        Ipv4Addr::new(1, 1, 1, 1).into()
+        Ipv4Addr::LOCALHOST.into()
       }
     }
   };
 
-  let mut icmp = EchoIcmpV4::from_payload_v4([].as_ref());
+  /* generate icmp struct */
+  let mut echo_icmp = {
+    match addr {
+      IpAddr::V4(_) => EchoIcmp::from_payload_v4([].as_ref()),
+      IpAddr::V6(_) => EchoIcmp::from_payload_v6([].as_ref()),
+    }
+  };
 
-  ping(addr,//todo
-       PingTimeout::default(),
-       None, &mut icmp)?;
+  ping(addr, PingTimeout::default(), None, &mut echo_icmp)?;
 
   Ok(())
 }
