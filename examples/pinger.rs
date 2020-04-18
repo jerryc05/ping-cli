@@ -12,7 +12,7 @@ fn main() -> Result<(), MyErr> {
 
     match args.next() {
       Some(addr_str) => addr_str.parse().map_err(
-        |err| MyErr::from((&err, file!(), line!() - 1)))?,
+        |err| MyErr::from_err(&err, file!(), line!() - 1))?,
       None => {
         eprintln!("No IP address specified! Using default [1.1.1.1]!");
         Ipv4Addr::LOCALHOST.into()

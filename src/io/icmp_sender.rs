@@ -55,7 +55,7 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
       }
     };
     Socket::new(domain, Type::raw(), protocol).map_err(
-      |err| MyErr::from((&err, file!(), line!() - 1)))?
+      |err| MyErr::from_err(&err, file!(), line!() - 1))?
   };
   let timer;
   let duration;
@@ -65,7 +65,7 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
   {
     let ttl = ttl_opt.unwrap_or(DEFAULT_TTL);
     socket.set_ttl(ttl).map_err(
-      |err| MyErr::from((&err, file!(), line!() - 1)))?;
+      |err| MyErr::from_err(&err, file!(), line!() - 1))?;
 
     let timeout = {
       if let Some(dur) = timeout_opt.0 {
@@ -75,7 +75,7 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
       }
     };
     socket.set_read_timeout(timeout).map_err(
-      |err| MyErr::from((&err, file!(), line!() - 1)))?;
+      |err| MyErr::from_err(&err, file!(), line!() - 1))?;
 
     /* checksum */
     {
@@ -119,7 +119,7 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
     let dest = SocketAddr::new(addr, 0);
     timer = Instant::now();
     let size = socket.send_to(&send_buf, &dest.into()).map_err(
-      |err| MyErr::from((&err, file!(), line!() - 1)))?;
+      |err| MyErr::from_err(&err, file!(), line!() - 1))?;
     debug_assert_eq!(size, send_buf.len());
   }
 
@@ -145,12 +145,12 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
         println!("{} bytes from {}: icmp_seq={} ttl={} time={:.3} ms",
                  icmp_recv.len(),
                  sock_addr.as_std().into_result().map_err(
-                   |err| MyErr::from((&err, file!(), line!() - 1)))?
+                   |err| MyErr::from_err(&err, file!(), line!() - 1))?
                    .ip(),
                  EchoIcmp::parse_seq_num(icmp_recv).into_result().map_err(
-                   |err| MyErr::from((&err, file!(), line!() - 1)))?,
+                   |err| MyErr::from_err(&err, file!(), line!() - 1))?,
                  socket.ttl().into_result().map_err(
-                   |err| MyErr::from((&err, file!(), line!() - 1)))?,
+                   |err| MyErr::from_err(&err, file!(), line!() - 1))?,
                  duration.as_secs_f32() * (Duration::from_secs(1).as_millis() as f32));
       }
     }
@@ -158,9 +158,13 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
     Err(err) =>
       match err.kind() {
         ErrorKind::TimedOut => println!("Request timed out."),
-        ErrorKind::PermissionDenied => println!("Permission Denied. \
-Perhaps \"setcap cap_net_raw,cap_net_admin=eip\" or \"sudo\" is required."),
-        _ => return Err(MyErr::from((&err, file!(), line!() - 1)))
+
+        ErrorKind::PermissionDenied => return Err(MyErr::from_str(
+          "Permission Denied. \
+Perhaps \"setcap cap_net_raw,cap_net_admin=eip\" or \"sudo\" is required.",
+          file!(), line!() - 3)),
+
+        _ => return Err(MyErr::from_err(&err, file!(), line!() - 1))
       }
   };
 

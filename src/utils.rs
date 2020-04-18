@@ -15,15 +15,17 @@ pub struct MyErr {
   line: u32,
 }
 
-// impl<T: Into<Cow<'a, str>>> From<(T, &'static str, u32)> for MyErr<'a> {
-//   fn from(arg: (T, &'static str, u32)) -> Self {
-//     Self { err: arg.0.into(), file: arg.1, line: arg.2 }
-//   }
-// }
+impl MyErr {
+  pub fn from_str<T: Into<String>>(
+    str: T, file: &'static str, line: u32,
+  ) -> Self {
+    Self { err: str.into(), file, line }
+  }
 
-impl<T: Debug> From<(&T, &'static str, u32)> for MyErr {
-  fn from(arg: (&T, &'static str, u32)) -> Self {
-    Self { err: format!("{:?}", arg.0), file: arg.1, line: arg.2 }
+  pub fn from_err<T: Debug>(
+    err: &T, file: &'static str, line: u32,
+  ) -> Self {
+    Self { err: format!("{:?}", err), file, line }
   }
 }
 
