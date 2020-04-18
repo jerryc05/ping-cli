@@ -6,6 +6,7 @@ use std::net::{SocketAddr, IpAddr};
 use std::ops::Deref;
 use std::time::{Duration, Instant};
 use std::borrow::Cow;
+use std::io::ErrorKind;
 
 const DEFAULT_TIMEOUT: Option<Duration> = Some(Duration::from_secs(4));
 const DEFAULT_TTL: u32 = 64;
@@ -46,7 +47,7 @@ impl PingTimeout {
 
 pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
             ttl_opt: Option<u32>, icmp: &mut dyn Icmp,
-) -> Result<Duration, MyErr> {
+) -> Result<(), MyErr> {
   let socket = {
     let domain;
     let protocol;
@@ -115,31 +116,37 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
     debug_assert_eq!(size, send_buf.len());
   }
 
-  /* recv */{
-    let (size, addr) = socket.recv_from(&mut recv_buf).map_err(
-      |err| MyErr::from((&err, file!(), line!() - 1)))?;
-    duration = timer.elapsed();
-    debug_assert_eq!(size, recv_buf.len());
+  /* recv */
+  match socket.recv_from(&mut recv_buf) {
+    Ok((size, addr)) => {
+      duration = timer.elapsed();
+      debug_assert_eq!(size, recv_buf.len());
 
-    for b in &recv_buf[IPV4_HEADER_SIZE..size] {
-      print!("{:02x} ", *b);
+      let real_recv = &recv_buf[IPV4_HEADER_SIZE..size];
+      for b in real_recv {
+        print!("{:02x} ", *b);
+      }
+      println!();
+      println!("64 bytes from 93.184.216.34: icmp_seq=0 ttl=56 time=11.632 ms");
+      println!("{} bytes from {}: icmp_seq={} ttl={} time={:.3} ms",
+               "??",
+               addr.as_std().map_or_else(
+                 || Cow::from("??"),
+                 |std_addr| std_addr.ip().to_string().into()),
+               "??",
+               socket.ttl().map_or_else(
+                 |err| {
+                   eprintln!("{:?}", MyErr::from((&err, file!(), line!() - 2)));
+                   Cow::from("??")
+                 },
+                 |ttl| ttl.to_string().into()),
+               duration.as_secs_f32() * (Duration::from_secs(1).as_millis() as f32));
     }
-    println!();
-    println!("64 bytes from 93.184.216.34: icmp_seq=0 ttl=56 time=11.632 ms");
-    println!("{} bytes from {}: icmp_seq={} ttl={} time={:.3} ms",
-             "??",
-             addr.as_std().map_or_else(
-               || Cow::from("??"),
-               |std_addr| std_addr.ip().to_string().into()),
-             "??",
-             socket.ttl().map_or_else(
-               |err| {
-                 eprintln!("{:?}", MyErr::from((&err, file!(), line!() - 2)));
-                 Cow::from("??")
-               },
-               |ttl| ttl.to_string().into()),
-             duration.as_secs_f32() * (Duration::from_secs(1).as_millis() as f32));
-  }
+
+    Err(err) if err.kind() == ErrorKind::TimedOut => println!("Request timed out."),
+
+    Err(err) => return Err(MyErr::from((&err, file!(), line!() - 1))),
+  };
 
   // let reply =
   //   if dest.is_ipv4() {
@@ -159,5 +166,11 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
   //     }
   //   };
 
-  Ok(duration)
+  /*
+--- 1.1.1.1 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2002ms
+rtt min/avg/max/mdev = 1.413/1.686/2.086/0.289 ms
+  */
+
+  Ok(())
 }
