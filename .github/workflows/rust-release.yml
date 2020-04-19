@@ -11,22 +11,26 @@ jobs:
 
     steps:
 
-      - uses: actions/checkout@v2
-  
+      - name: Checkout
+        uses: actions/checkout@v2
+
       - name: Switch Rust to Nightly
         run: rustup default nightly
-  
+
       - name: Check Rust Version
         run: rustup show
-  
+
       - name: Build
         run: cargo br -v
-  
+
       - name: Run tests
         run: cargo test -v
-  
-      - name: Upload to File.src
-        run: curl -F "file=@target/release/ping-cli" https://file.src
+
+      - name: Upload to Artifact
+        uses: actions/upload-artifact@latest
+        with:
+          name: ping-cli-linux
+          path: ./target/release/ping-cli
 
   build-macos:
     name: Build on Mac OS
@@ -35,15 +39,18 @@ jobs:
     steps:
 
       - uses: actions/checkout@v2
-  
+
       - name: Switch Rust to Nightly
         run: rustup default nightly
-  
+
       - name: Check Rust Version
         run: rustup show
-  
+
       - name: Build
         run: cargo br -v
-  
-      - name: Upload to File.src
-        run: curl -F "file=@target/release/ping-cli" https://file.src
+
+      - name: Upload to Artifact
+        uses: actions/upload-artifact@latest
+        with:
+          name: ping-cli-mac
+          path: ./target/release/ping-cli
