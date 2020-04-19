@@ -82,8 +82,12 @@ Perhaps \"setcap cap_net_raw,cap_net_admin=eip\" or \"sudo\" is required.",
       |err| MyErr::from_err(&err, file!(), line!() - 1))?;
 
     let ttl = ttl_opt.unwrap_or(DEFAULT_TTL);
-    socket.set_ttl(ttl).map_err(
-      |err| MyErr::from_err(&err, file!(), line!() - 1))?;
+    socket.set_ttl(ttl).unwrap_or_else(
+      |err| {
+        eprintln!("WARN: Failed to set socket TTL.");
+        eprintln!("     [{:?}]", err);
+        eprintln!("at [{}：{}]", file!(), line!() - 4);
+      });
 
     /* checksum */
     {

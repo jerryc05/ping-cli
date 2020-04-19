@@ -34,9 +34,9 @@ impl Debug for MyErr {
     const ERROR: &str = "ERROR";
     writeln!(f, "
 {1:-^0$}
-msg: [{2:?}]
-
-at: [{3}:{4}]
+| msg: [{2:?}]
+|
+| at: [{3}:{4}]
 {1:-^0$}",
              CONSOLE_FMT_WIDTH, ERROR, self.err, self.file, self.line)
   }
