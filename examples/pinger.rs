@@ -1,6 +1,4 @@
-use ping_cli::icmp::known_structs::echo::EchoIcmp;
-use ping_cli::io::icmp_sender::{ping, PingTimeout};
-use ping_cli::utils::MyErr;
+use ping_cli::{ping, PingTimeout, MyErr, EchoIcmp};
 use std::env::args;
 use std::net::{Ipv4Addr, IpAddr};
 
