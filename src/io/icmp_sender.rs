@@ -8,8 +8,9 @@ use std::time::{Duration, Instant};
 use std::io::ErrorKind;
 use std::ops::Try;
 use std::borrow::Cow;
+use crate::io::dns::dns_resolve;
 
-const DEFAULT_TIMEOUT: Option<Duration> = Some(Duration::from_secs(4));
+pub(crate) const DEFAULT_TIMEOUT: Duration = Duration::from_secs(4);
 const DEFAULT_TTL: u32 = 64;
 #[allow(dead_code)]
 const ETHERNET_V2_HEADER_SIZE: usize = 14;
@@ -20,7 +21,7 @@ pub struct PingTimeout(Option<Duration>);
 
 impl Default for PingTimeout {
   fn default() -> Self {
-    Self(DEFAULT_TIMEOUT)
+    Self(Some(DEFAULT_TIMEOUT))
   }
 }
 
@@ -40,11 +41,34 @@ impl PingTimeout {
 
 // Separator
 
-pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
-            ttl_opt: Option<u32>, echo_icmp: &mut EchoIcmp) -> Result<(), MyErr> {
+pub fn ping(host_or_ip: &str, size: u16, timeout_opt: PingTimeout,
+            ttl_opt: Option<u32>) -> Result<(), MyErr> {
+  /* parse addr */
+  let addr = match host_or_ip.parse() {
+    Ok(ip) => ip,
+    Err(_) => dns_resolve(host_or_ip).map_err(
+      |err| MyErr::from_err(&err, file!(), line!() - 1))?
+  };
+
+  /* generate icmp struct */
+  let mut echo_icmp = {
+    let vec = Vec::with_capacity(size as usize);
+    match addr {
+      IpAddr::V4(_) => EchoIcmp::from_payload_v4(vec),
+      IpAddr::V6(_) => EchoIcmp::from_payload_v6(vec),
+    }
+  };
+
+  ping_from_ip(addr, timeout_opt, ttl_opt, &mut echo_icmp)
+}
+
+
+fn ping_from_ip(addr: IpAddr, timeout_opt: PingTimeout,
+                ttl_opt: Option<u32>, echo_icmp: &mut EchoIcmp) -> Result<(), MyErr> {
   let socket = {
     let domain;
     let protocol;
+
     match addr {
       IpAddr::V4(_) => {
         domain = Domain::ipv4();
@@ -55,12 +79,12 @@ pub fn ping(addr: IpAddr, timeout_opt: PingTimeout,
         protocol = Some(Protocol::icmpv6());
       }
     };
-    Socket::new(domain, Type::raw(), protocol).map_err(
-      |err| if err.kind() == ErrorKind::PermissionDenied {
+
+    Socket::new(domain, Type::raw(), protocol).map_err(|err|
+      if err.kind() == ErrorKind::PermissionDenied {
         MyErr::from_str(
-          "Permission Denied. \
-Perhaps \"setcap cap_net_raw,cap_net_admin=eip\" or \"sudo\" is required.",
-          file!(), line!() - 5)
+          "Permission Denied. Perhaps \"setcap cap_net_raw,cap_net_admin=eip\" or \"sudo\" is required.",
+          file!(), line!() - 4)
       } else {
         MyErr::from_err(&err, file!(), line!() - 7)
       }
@@ -68,15 +92,15 @@ Perhaps \"setcap cap_net_raw,cap_net_admin=eip\" or \"sudo\" is required.",
   };
   let timer;
   let duration;
+  let mut recv_buf;
 
   /* send */
-  let mut recv_buf;
   {
     let timeout = {
       if let Some(dur) = timeout_opt.0 {
         if dur == Duration::from_secs(0) { None } else { timeout_opt.0 }
       } else {
-        DEFAULT_TIMEOUT
+        Some(DEFAULT_TIMEOUT)
       }
     };
     socket.set_read_timeout(timeout).map_err(
@@ -193,19 +217,15 @@ Perhaps \"setcap cap_net_raw,cap_net_admin=eip\" or \"sudo\" is required.",
 #[test]
 fn test_ipv4() -> Result<(), MyErr> {
   use std::net::Ipv4Addr;
-  let mut echo_icmp = EchoIcmp::from_payload_v4([].as_ref());
-  ping(Ipv4Addr::LOCALHOST.into(),
-       PingTimeout::default(),
-       None, &mut echo_icmp)?;
+  ping(Ipv4Addr::LOCALHOST.into(), 0,
+       PingTimeout::default(), None)?;
   Ok(())
 }
 
 #[test]
 fn test_ipv6() -> Result<(), MyErr> {
   use std::net::Ipv6Addr;
-  let mut echo_icmp = EchoIcmp::from_payload_v6([].as_ref());
-  ping(Ipv6Addr::LOCALHOST.into(),
-       PingTimeout::default(),
-       None, &mut echo_icmp)?;
+  ping(Ipv6Addr::LOCALHOST.into(), 0,
+       PingTimeout::default(), None)?;
   Ok(())
 }

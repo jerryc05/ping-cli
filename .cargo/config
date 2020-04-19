@@ -7,7 +7,7 @@ clippy -- \
 -Wclippy::nursery \
 -Wclippy::cargo \
 """
-t = "test"
+t = "test"  # "-- --nocapture"
 tr = "test --release"
 r = "run"
 rr = "run --release"

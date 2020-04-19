@@ -1,32 +1,33 @@
-use ping_cli::{ping, PingTimeout, MyErr, EchoIcmp};
+use ping_cli::{ping, PingTimeout, MyErr};
 use std::env::args;
-use std::net::{Ipv4Addr, IpAddr};
+use std::net::Ipv4Addr;
 
 fn main() -> Result<(), MyErr> {
   /* parse addr */
-  let addr = {
-    let mut args = args();
+  let mut args = args();
+  let host_or_ip = {
     args.next();
 
     match args.next() {
-      Some(addr_str) => addr_str.parse().map_err(
-        |err| MyErr::from_err(&err, file!(), line!() - 1))?,
+      Some(str) => str,
       None => {
-        eprintln!("No IP address specified! Using default [1.1.1.1]!");
-        Ipv4Addr::LOCALHOST.into()
+        eprintln!("No IP address specified! Using default Ipv4 loop-back!");
+        Ipv4Addr::LOCALHOST.to_string()
       }
     }
   };
 
-  /* generate icmp struct */
-  let mut echo_icmp = {
-    match addr {
-      IpAddr::V4(_) => EchoIcmp::from_payload_v4([].as_ref()),
-      IpAddr::V6(_) => EchoIcmp::from_payload_v6([].as_ref()),
+  /* parse size */
+  let size = {
+    match args.next() {
+      Some(u16_str) => u16_str.parse().map_err(|_|
+        MyErr::from_str("Failed to parse [{}] to u16. Check your input!",
+                        file!(), line!() - 2))?,
+      None => 0
     }
   };
 
-  ping(addr, PingTimeout::default(), None, &mut echo_icmp)?;
+  ping(&host_or_ip, size, PingTimeout::default(), None)?;
 
   Ok(())
 }
