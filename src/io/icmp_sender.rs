@@ -217,7 +217,7 @@ fn ping_from_ip(addr: IpAddr, timeout_opt: PingTimeout,
 #[test]
 fn test_ipv4() -> Result<(), MyErr> {
   use std::net::Ipv4Addr;
-  ping(Ipv4Addr::LOCALHOST.into(), 0,
+  ping(&Ipv4Addr::LOCALHOST.to_string(), 0,
        PingTimeout::default(), None)?;
   Ok(())
 }
@@ -225,7 +225,7 @@ fn test_ipv4() -> Result<(), MyErr> {
 #[test]
 fn test_ipv6() -> Result<(), MyErr> {
   use std::net::Ipv6Addr;
-  ping(Ipv6Addr::LOCALHOST.into(), 0,
+  ping(&Ipv6Addr::LOCALHOST.to_string(), 0,
        PingTimeout::default(), None)?;
   Ok(())
 }
