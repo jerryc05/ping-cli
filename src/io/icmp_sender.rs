@@ -168,11 +168,12 @@ Perhaps \"setcap cap_net_raw,cap_net_admin=eip\" or \"sudo\" is required.",
       }
     }
 
-    Err(err) => if err.kind() == ErrorKind::TimedOut {
-      println!("Request timed out.");
-    } else {
-      return Err(MyErr::from_err(&err, file!(), line!() - 1));
-    }
+    Err(err) =>
+      if err.kind() == ErrorKind::TimedOut || err.kind() == ErrorKind::WouldBlock {
+        println!("Request timed out.");
+      } else {
+        return Err(MyErr::from_err(&err, file!(), line!() - 4));
+      }
   };
 
   /*
