@@ -7,6 +7,7 @@ use std::net::{SocketAddr, IpAddr};
 use std::time::{Duration, Instant};
 use std::io::ErrorKind;
 use std::ops::Try;
+use std::borrow::Cow;
 
 const DEFAULT_TIMEOUT: Option<Duration> = Some(Duration::from_secs(4));
 const DEFAULT_TTL: u32 = 64;
@@ -161,8 +162,8 @@ Perhaps \"setcap cap_net_raw,cap_net_admin=eip\" or \"sudo\" is required.",
                    .ip(),
                  EchoIcmp::parse_seq_num(icmp_recv).into_result().map_err(
                    |err| MyErr::from_err(&err, file!(), line!() - 1))?,
-                 socket.ttl().into_result().map_err(
-                   |err| MyErr::from_err(&err, file!(), line!() - 1))?,
+                 socket.ttl().map_or_else(|_| Cow::from("--"),
+                                          |ttl| ttl.to_string().into()),
                  duration.as_secs_f32() * (Duration::from_secs(1).as_millis() as f32));
       }
     }
