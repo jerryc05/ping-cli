@@ -11,6 +11,7 @@ use std::borrow::Cow;
 use crate::io::dns::dns_resolve;
 
 pub(crate) const DEFAULT_TIMEOUT: Duration = Duration::from_secs(4);
+const DEFAULT_PACKET_SIZE: u16 = 0;
 const DEFAULT_TTL: u32 = 64;
 #[allow(dead_code)]
 const ETHERNET_V2_HEADER_SIZE: usize = 14;
@@ -41,8 +42,8 @@ impl PingTimeout {
 
 // Separator
 
-pub fn ping(host_or_ip: &str, size: u16, timeout_opt: PingTimeout,
-            ttl_opt: Option<u32>) -> Result<(), MyErr> {
+pub fn ping(host_or_ip: &str, timeout_opt: PingTimeout, count_opt: Option<usize>, //todo
+            p_size_opt: Option<u16>, ttl_opt: Option<u32>) -> Result<(), MyErr> {
   /* parse addr */
   let addr = match host_or_ip.parse() {
     Ok(ip) => ip,
@@ -52,7 +53,8 @@ pub fn ping(host_or_ip: &str, size: u16, timeout_opt: PingTimeout,
 
   /* generate icmp struct */
   let mut echo_icmp = {
-    let vec = Vec::with_capacity(size as usize);
+    let vec = Vec::with_capacity(
+      p_size_opt.unwrap_or(DEFAULT_PACKET_SIZE) as usize);
     match addr {
       IpAddr::V4(_) => EchoIcmp::from_payload_v4(vec),
       IpAddr::V6(_) => EchoIcmp::from_payload_v6(vec),
@@ -217,15 +219,15 @@ fn ping_from_ip(addr: IpAddr, timeout_opt: PingTimeout,
 #[test]
 fn test_ipv4() -> Result<(), MyErr> {
   use std::net::Ipv4Addr;
-  ping(&Ipv4Addr::LOCALHOST.to_string(), 0,
-       PingTimeout::default(), None)?;
+  ping(&Ipv4Addr::LOCALHOST.to_string(), PingTimeout::default(),
+       None, None, None)?;
   Ok(())
 }
 
 #[test]
 fn test_ipv6() -> Result<(), MyErr> {
   use std::net::Ipv6Addr;
-  ping(&Ipv6Addr::LOCALHOST.to_string(), 0,
-       PingTimeout::default(), None)?;
+  ping(&Ipv6Addr::LOCALHOST.to_string(), PingTimeout::default(),
+       None, None, None)?;
   Ok(())
 }
