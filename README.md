@@ -2,6 +2,8 @@
 
 A PING emulator (for `Linux`-like OS) for Cloudflare 2020 Internship Coding Challenge.
 
+Please refer to https://github.com/jerryc05/ping-cli/tree/dev-rust for latest version.
+
 [toc]
 
 ## Usage
@@ -11,7 +13,7 @@ SYNOPSIS
 	ping-cli ADDR_OR_HOST [OPTION_1 [OPTION_2 [...]]]
 
 OPTIONS
-	-c count
+  -c count
 		Number of PINGs to send. 
 		Type: usize
   -i interval
