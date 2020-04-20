@@ -2,6 +2,7 @@ use std::net::IpAddr;
 use std::process::Command;
 use std::ops::Try;
 use crate::MyErr;
+use crate::utils::is_debug;
 
 pub(crate) fn dns_resolve(host: &str) -> Result<IpAddr, MyErr> {
   let response = {
@@ -20,7 +21,9 @@ parsing abbreviated ip addresses (like a.b or a.b.c) yet. It uses \"inet_pton()\
 
     String::from_utf8_lossy(&output.stdout).into_owned()
   };
-  dbg!(&response);
+  if is_debug() {
+    dbg!(&response);
+  }
 
   let addr_str = {
     // Start point
@@ -47,12 +50,18 @@ parsing abbreviated ip addresses (like a.b or a.b.c) yet. It uses \"inet_pton()\
           file!(), line!() - 3))?
     };
 
-    dbg!(&data[..end_idx])
+    data = &data[..end_idx];
+    if is_debug() {
+      dbg!(data);
+    }
+    data
   };
 
   let resolved_ip = addr_str.parse().map_err(
     |err| MyErr::from_err(&err, file!(), line!() - 1))?;
-  dbg!(resolved_ip);
+  if is_debug() {
+    dbg!(resolved_ip);
+  }
   Ok(resolved_ip)
 }
 

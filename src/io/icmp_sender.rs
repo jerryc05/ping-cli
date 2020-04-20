@@ -24,7 +24,9 @@ pub fn ping(host_or_ip: &str, timeout_opt: Option<f32>,
             mut count_opt: Option<usize>, interval_opt: Option<f32>,
             p_size_opt: Option<u16>, ttl_opt: Option<u32>) -> Result<(), MyErr> {
   // inspect params
-  dbg!(count_opt, interval_opt, p_size_opt, ttl_opt);
+  if is_debug() {
+    dbg!(count_opt, interval_opt, p_size_opt, ttl_opt);
+  }
 
   // parse addr
   let addr = match host_or_ip.parse() {
@@ -38,7 +40,9 @@ pub fn ping(host_or_ip: &str, timeout_opt: Option<f32>,
     let mut vec = Vec::with_capacity(p_size as usize);
     unsafe { vec.set_len(p_size as usize); }
     payload_vec = vec;
-    dbg!(&payload_vec);
+    if is_debug() {
+      dbg!(&payload_vec);
+    }
   }
 
   // parse timeout_opt
@@ -76,7 +80,9 @@ pub fn ping(host_or_ip: &str, timeout_opt: Option<f32>,
           IpAddr::V6(_) => EchoIcmp::from_payload_v6(&payload_vec),
         }
       };
-      dbg!(&echo_icmp);
+      if is_debug() {
+        dbg!(&echo_icmp);
+      }
 
       ping_from_ip(addr, timeout, ttl_opt, &mut echo_icmp)?;
 
@@ -91,13 +97,16 @@ pub fn ping(host_or_ip: &str, timeout_opt: Option<f32>,
           }
         };
 
+        if is_debug() {
+          dbg!(format_args!("Sleeping for [{}] s.", interval.as_secs_f32()));
+        }
         sleep(interval);
       }
     }
   }
 
   println!();
-  println!("{1:-^0$}", CONSOLE_FMT_WIDTH, "PING stopped here.");
+  println!("{1:-^0$}", CONSOLE_FMT_WIDTH, "PING Stopped, Statictics Omitted");
 
   Ok(())
 }
@@ -207,7 +216,7 @@ fn ping_from_ip(addr: IpAddr, timeout: Option<Duration>, ttl_opt: Option<u32>,
           println!();
         }
 
-        println!("{} bytes from {}: icmp_seq={} ttl={} time={:.3} ms",
+        println!("{} bytes from {}, icmp_seq: {:>3}, ttl: {}, rtt: {:.3} ms",
                  icmp_recv.len(),
                  sock_addr.as_std().into_result().map_err(
                    |err| MyErr::from_err(&err, file!(), line!() - 1))?
@@ -222,7 +231,9 @@ fn ping_from_ip(addr: IpAddr, timeout: Option<Duration>, ttl_opt: Option<u32>,
 
     Err(err) =>
       if err.kind() == ErrorKind::TimedOut || err.kind() == ErrorKind::WouldBlock {
-        dbg!(err);
+        if is_debug() {
+          dbg!(err);
+        }
         print!("Request timed out ");
         match timeout {
           Some(dur) => println!("after [{}] s.", dur.as_secs_f32()),
@@ -233,14 +244,6 @@ fn ping_from_ip(addr: IpAddr, timeout: Option<Duration>, ttl_opt: Option<u32>,
       }
   };
 
-  /* todo
-
-  --- 1.1.1.1 ping statistics ---
-  3 packets transmitted, 3 received, 0% packet loss, time 2002ms
-  rtt min/avg/max/mdev = 1.413/1.686/2.086/0.289 ms
-
-  */
-
   Ok(())
 }
 
@@ -248,7 +251,7 @@ fn ping_from_ip(addr: IpAddr, timeout: Option<Duration>, ttl_opt: Option<u32>,
 fn test_ipv4() -> Result<(), MyErr> {
   use std::net::Ipv4Addr;
   ping(&Ipv4Addr::LOCALHOST.to_string(), None,
-       None, None, None, None)?;
+       Some(1), None, None, None)?;
   Ok(())
 }
 
@@ -256,6 +259,6 @@ fn test_ipv4() -> Result<(), MyErr> {
 fn test_ipv6() -> Result<(), MyErr> {
   use std::net::Ipv6Addr;
   ping(&Ipv6Addr::LOCALHOST.to_string(), None,
-       None, None, None, None)?;
+       Some(1), None, None, None)?;
   Ok(())
 }
