@@ -1,7 +1,7 @@
 use std::net::IpAddr;
-use crate::MyErr;
 use std::process::Command;
 use std::ops::Try;
+use crate::MyErr;
 
 pub(crate) fn dns_resolve(host: &str) -> Result<IpAddr, MyErr> {
   let response = {
@@ -12,21 +12,23 @@ pub(crate) fn dns_resolve(host: &str) -> Result<IpAddr, MyErr> {
         file!(), line!() - 4))?;
 
     if !output.status.success() {
-      return Err(MyErr::from_str(
-        format!("Failed to resolve DNS for host [{:?}]!", host),
-        file!(), line!() - 1));
+      return Err(MyErr::from_str(format!(
+        "Failed to resolve DNS for host [{}]! Note that Rust's stdlib does not support \
+parsing abbreviated ip addresses (like a.b or a.b.c) yet. It uses \"inet_pton()\" internally.",
+        host), file!(), line!() - 4));
     }
 
     String::from_utf8_lossy(&output.stdout).into_owned()
   };
+  dbg!(&response);
 
   let addr_str = {
     // Start point
     let addr_idx = {
-      let keyword = "\"has address\":";
+      let keyword = "has address";
       keyword.len() + response.find(keyword).into_result().map_err(
         |_| MyErr::from_str(
-          format!("Cannot locate \"has address\" in dns result [{}]!", response),
+          format!("Cannot locate \"{}\" in dns result [{}]!", keyword, response),
           file!(), line!() - 3))?
     };
 
@@ -38,14 +40,14 @@ pub(crate) fn dns_resolve(host: &str) -> Result<IpAddr, MyErr> {
     }
 
     // End point
-    let space_idx = {
-      data.find(' ').into_result().map_err(
+    let end_idx = {
+      data.find('\n').into_result().map_err(
         |_| MyErr::from_str(
           format!("Cannot locate end of \"data\" in dns result [{}]!", response),
           file!(), line!() - 3))?
     };
 
-    dbg!(&data[..space_idx])
+    dbg!(&data[..end_idx])
   };
 
   dbg!(Ok(addr_str.parse().map_err(

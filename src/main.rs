@@ -9,9 +9,10 @@ fn main() -> Result<(), MyErr> {
     args.next();
 
     match args.next() {
-      Some(str) if str.trim() != "0" => str,
+      Some(str) if str.trim() != "0"
+        && str.trim() != "127.1" && str.trim() != "127.0.1" => str,
       _ => {
-        eprintln!("Using default Ipv4 loop-back!");
+        eprintln!("Using default IpV4 loop-back!");
         Ipv4Addr::LOCALHOST.to_string()
       }
     }
@@ -23,31 +24,31 @@ fn main() -> Result<(), MyErr> {
   let mut p_size_opt = None;
   let mut ttl_opt = None;
   while let Some(arg1) = args.next() {
-      match args.next() {
-        Some(arg2) =>
-          match arg1.as_str() {
-            "-c" => count_opt = Some(arg2.parse().map_err(|_|
-              MyErr::from_str("Failed to parse [{}] to usize count!",
-                              file!(), line!() - 2))?),
-            "-i" => interval_opt = Some(arg2.parse().map_err(|_|
-              MyErr::from_str("Failed to parse [{}] to f32 interval!",
-                              file!(), line!() - 2))?),
-            "-s" => p_size_opt = Some(arg2.parse().map_err(|_|
-              MyErr::from_str("Failed to parse [{}] to u16 packet size!",
-                              file!(), line!() - 2))?),
-            "-t" => ttl_opt = Some(arg2.parse().map_err(|_|
-              MyErr::from_str("Failed to parse [{}] to u32 ttl!",
-                              file!(), line!() - 2))?),
-            _ => {}
-          },
-        None => return Err(MyErr::from_str(
-          format!("This arg did not come in pair: [{}]!", arg1),
-          file!(), line!() - 2))
-      }
-    };
+    match args.next() {
+      Some(arg2) =>
+        match arg1.as_str() {
+          "-c" => count_opt = Some(arg2.parse().map_err(|_|
+            MyErr::from_str("Failed to parse [{}] to usize count!",
+                            file!(), line!() - 2))?),
+          "-i" => interval_opt = Some(arg2.parse().map_err(|_|
+            MyErr::from_str("Failed to parse [{}] to f32 interval!",
+                            file!(), line!() - 2))?),
+          "-s" => p_size_opt = Some(arg2.parse().map_err(|_|
+            MyErr::from_str("Failed to parse [{}] to u16 packet size!",
+                            file!(), line!() - 2))?),
+          "-t" => ttl_opt = Some(arg2.parse().map_err(|_|
+            MyErr::from_str("Failed to parse [{}] to u32 ttl!",
+                            file!(), line!() - 2))?),
+          _ => {}
+        },
+      None => return Err(MyErr::from_str(
+        format!("This arg did not come in pair: [{}]!", arg1),
+        file!(), line!() - 2))
+    }
+  };
 
   ping(&host_or_ip, &PingTimeout::default(),
-       count_opt, interval_opt,p_size_opt, ttl_opt)?;
+       count_opt, interval_opt, p_size_opt, ttl_opt)?;
 
   Ok(())
 }

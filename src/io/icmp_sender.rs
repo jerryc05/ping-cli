@@ -1,15 +1,15 @@
-use crate::icmp::known_structs::echo::EchoIcmp;
-use crate::icmp::icmp_0_trait::Icmp;
-use crate::icmp::icmp_1_header_2_checksum::IcmpChecksum;
-use crate::utils::{is_debug, MyErr, CONSOLE_FMT_WIDTH};
-use socket2::{Socket, Domain, Type, Protocol};
 use std::net::{SocketAddr, IpAddr};
 use std::time::{Duration, Instant};
 use std::io::ErrorKind;
 use std::ops::Try;
 use std::borrow::Cow;
-use crate::io::dns::dns_resolve;
 use std::thread::sleep;
+use socket2::{Socket, Domain, Type, Protocol};
+use crate::icmp::known_structs::echo::EchoIcmp;
+use crate::icmp::icmp_0_trait::Icmp;
+use crate::icmp::icmp_1_header_2_checksum::IcmpChecksum;
+use crate::io::dns::dns_resolve;
+use crate::utils::{is_debug, MyErr, CONSOLE_FMT_WIDTH};
 
 pub(crate) const DEFAULT_TIMEOUT: Duration = Duration::from_secs(4);
 const DEFAULT_PACKET_SIZE: u16 = 0;
@@ -50,8 +50,7 @@ pub fn ping(host_or_ip: &str, timeout_opt: &PingTimeout,
   /* parse addr */
   let addr = match host_or_ip.parse() {
     Ok(ip) => ip,
-    Err(_) => dns_resolve(host_or_ip).map_err(
-      |err| MyErr::from_err(&err, file!(), line!() - 1))?
+    Err(_) => dns_resolve(host_or_ip)?
   };
 
   let p_size = p_size_opt.unwrap_or(DEFAULT_PACKET_SIZE);
@@ -65,18 +64,13 @@ pub fn ping(host_or_ip: &str, timeout_opt: &PingTimeout,
   }
 
   if count_opt != Some(0) {
-    let interval = {
-      let mut int_ = DEFAULT_INTERVAL;
-      if let Some(dur) = interval_opt {
-        if dur > 0. {
-          int_ = Duration::from_secs_f32(dur);
-        }
-      }
-      int_
+    let interval = match interval_opt {
+      Some(dur) if dur >= 0. => Duration::from_secs_f32(dur),
+      _ => DEFAULT_INTERVAL
     };
 
     loop {
-      /* generate icmp struct */
+      // generate icmp struct
       let mut echo_icmp = {
         match addr {
           IpAddr::V4(_) => EchoIcmp::from_payload_v4(&vec),
@@ -87,16 +81,19 @@ pub fn ping(host_or_ip: &str, timeout_opt: &PingTimeout,
 
       ping_from_ip(addr, timeout_opt, ttl_opt, &mut echo_icmp)?;
 
-      if let Some(mut count) = count_opt {
-        count -= 1;
-        count_opt = Some(count);
+      // interval
+      {
+        if let Some(mut count) = count_opt {
+          count -= 1;
+          count_opt = Some(count);
 
-        if count == 0 {
-          break;
-        }
-      };
+          if count == 0 {
+            break;
+          }
+        };
 
-      sleep(interval);
+        sleep(interval);
+      }
     }
   }
 
@@ -142,11 +139,12 @@ fn ping_from_ip(addr: IpAddr, timeout_opt: &PingTimeout, ttl_opt: Option<u32>,
   {
     // timeout
     {
-      let timeout = if let Some(dur) = timeout_opt.0 {
-        if dur == Duration::from_secs(0) { None } else { timeout_opt.0 }
-      } else {
-        Some(DEFAULT_TIMEOUT)
-      };
+      let timeout =
+        if let Some(dur) = timeout_opt.0 {
+          if dur == Duration::from_secs(0) { None } else { timeout_opt.0 }
+        } else {
+          Some(DEFAULT_TIMEOUT)
+        };
       socket.set_read_timeout(timeout).map_err(
         |err| MyErr::from_err(&err, file!(), line!() - 1))?;
     };
