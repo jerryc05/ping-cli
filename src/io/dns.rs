@@ -14,8 +14,7 @@ pub(crate) fn dns_resolve(host: &str) -> Result<IpAddr, MyErr> {
 
     if !output.status.success() {
       return Err(MyErr::from_str(format!(
-        "Failed to resolve DNS for host [{}]! Note that Rust's stdlib does not support \
-parsing abbreviated ip addresses (like a.b or a.b.c) yet. It uses \"inet_pton()\" internally.",
+        "Failed to resolve DNS for host [{}]! Please refer to readme for FAQ.",
         host), file!(), line!() - 4));
     }
 
