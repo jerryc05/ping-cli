@@ -27,19 +27,37 @@ fn main() -> Result<(), MyErr> {
     match args.next() {
       Some(arg2) =>
         match arg1.as_str() {
-          "-c" => count_opt = Some(arg2.parse().map_err(|_|
-            MyErr::from_str("Failed to parse [{}] to usize count!",
-                            file!(), line!() - 2))?),
-          "-i" => interval_opt = Some(arg2.parse().map_err(|_|
-            MyErr::from_str("Failed to parse [{}] to f32 interval!",
-                            file!(), line!() - 2))?),
-          "-s" => p_size_opt = Some(arg2.parse().map_err(|_|
-            MyErr::from_str("Failed to parse [{}] to u16 packet size!",
-                            file!(), line!() - 2))?),
-          "-t" => ttl_opt = Some(arg2.parse().map_err(|_|
-            MyErr::from_str("Failed to parse [{}] to u32 ttl!",
-                            file!(), line!() - 2))?),
-          _ => {}
+          "-c" => count_opt = {
+            Some(arg2.parse().map_err(|_|
+              MyErr::from_str(format!("Failed to parse [{}] to usize count!", arg2),
+                              file!(), line!() - 2))?)
+          },
+          "-i" => interval_opt = {
+            let int_num = arg2.parse().map_err(|_|
+              MyErr::from_str(format!("Failed to parse [{}] to f32 interval!", arg2),
+                              file!(), line!() - 2))?;
+            if int_num < 0. {
+              return Err(MyErr::from_str(
+                "Negative interval is invalid. Check your input!",
+                file!(), line!() - 3));
+            }
+            Some(int_num)
+          },
+          "-s" => p_size_opt = {
+            Some(arg2.parse().map_err(|_|
+              MyErr::from_str(format!("Failed to parse [{}] to u16 packet size!", arg2),
+                              file!(), line!() - 2))?)
+          },
+          "-t" => ttl_opt = {
+            Some(arg2.parse().map_err(|_|
+              MyErr::from_str(format!("Failed to parse [{}] to u32 ttl!", arg2),
+                              file!(), line!() - 2))?)
+          },
+          arg => {
+            return Err(MyErr::from_str(
+              format!("Unknown arg/flag [{}]. Check your input!", arg),
+              file!(), line!() - 3));
+          }
         },
       None => return Err(MyErr::from_str(
         format!("This arg did not come in pair: [{}]!", arg1),

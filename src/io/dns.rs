@@ -50,8 +50,10 @@ parsing abbreviated ip addresses (like a.b or a.b.c) yet. It uses \"inet_pton()\
     dbg!(&data[..end_idx])
   };
 
-  dbg!(Ok(addr_str.parse().map_err(
-    |err| MyErr::from_err(&err, file!(), line!() - 1))?))
+  let resolved_ip = addr_str.parse().map_err(
+    |err| MyErr::from_err(&err, file!(), line!() - 1))?;
+  dbg!(resolved_ip);
+  Ok(resolved_ip)
 }
 
 #[cfg(feature = "dns")]

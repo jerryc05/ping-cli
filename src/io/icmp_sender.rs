@@ -47,16 +47,25 @@ impl PingTimeout {
 pub fn ping(host_or_ip: &str, timeout_opt: &PingTimeout,
             mut count_opt: Option<usize>, interval_opt: Option<f32>,
             p_size_opt: Option<u16>, ttl_opt: Option<u32>) -> Result<(), MyErr> {
-  /* parse addr */
+  // inspect params
+  dbg!(count_opt, interval_opt, p_size_opt, ttl_opt);
+
+  // parse addr
   let addr = match host_or_ip.parse() {
     Ok(ip) => ip,
     Err(_) => dns_resolve(host_or_ip)?
   };
 
   let p_size = p_size_opt.unwrap_or(DEFAULT_PACKET_SIZE);
-  let vec = Vec::with_capacity(p_size as usize);
+  let payload_vec;
+  {
+    let mut vec = Vec::with_capacity(p_size as usize);
+    unsafe { vec.set_len(p_size as usize); }
+    payload_vec = vec;
+    dbg!(&payload_vec);
+  }
 
-  /* print before PING */
+  // print before PING
   {
     println!();
     println!("PING {} ({}) {}({}) bytes of data.",
@@ -73,8 +82,8 @@ pub fn ping(host_or_ip: &str, timeout_opt: &PingTimeout,
       // generate icmp struct
       let mut echo_icmp = {
         match addr {
-          IpAddr::V4(_) => EchoIcmp::from_payload_v4(&vec),
-          IpAddr::V6(_) => EchoIcmp::from_payload_v6(&vec),
+          IpAddr::V4(_) => EchoIcmp::from_payload_v4(&payload_vec),
+          IpAddr::V6(_) => EchoIcmp::from_payload_v6(&payload_vec),
         }
       };
       dbg!(&echo_icmp);
