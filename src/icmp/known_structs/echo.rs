@@ -8,6 +8,8 @@ use crate::icmp::icmp_1_header_2_checksum::IcmpChecksum;
 use std::borrow::Cow;
 use std::mem::size_of_val;
 use std::sync::atomic::{AtomicU16, Ordering};
+use crate::MyErr;
+use std::ops::Try;
 
 static SEQUENCE_COUNTER: AtomicU16 = AtomicU16::new(1);
 
@@ -120,13 +122,33 @@ impl<'a> EchoIcmp<'a> {
   }
 
   #[inline]
-  pub fn parse_identifier(bytes: &[u8]) -> Option<u8> {
-    bytes.get(4).copied()
+  pub fn parse_identifier(bytes: &[u8]) -> Result<u16, MyErr> {
+    let b4 = bytes.get(4).copied().into_result().map_err(
+      |_| MyErr::from_str(
+        format!("Failed to get the 4th index from arr [{:?}]!", bytes),
+        file!(), line!() - 3))?;
+
+    let b5 = bytes.get(5).copied().into_result().map_err(
+      |_| MyErr::from_str(
+        format!("Failed to get the 5th index from arr [{:?}]!", bytes),
+        file!(), line!() - 3))?;
+
+    Ok(u16::from_be_bytes([b4, b5]))
   }
 
   #[inline]
-  pub fn parse_seq_num(bytes: &[u8]) -> Option<u8> {
-    bytes.get(5).copied()
+  pub fn parse_seq_num(bytes: &[u8])-> Result<u16, MyErr> {
+    let b6 = bytes.get(6).copied().into_result().map_err(
+      |_| MyErr::from_str(
+        format!("Failed to get the 6th index from arr [{:?}]!", bytes),
+        file!(), line!() - 3))?;
+
+    let b7 = bytes.get(7).copied().into_result().map_err(
+      |_| MyErr::from_str(
+        format!("Failed to get the 7th index from arr [{:?}]!", bytes),
+        file!(), line!() - 3))?;
+
+    Ok(u16::from_be_bytes([b6, b7]))
   }
 
   #[inline]

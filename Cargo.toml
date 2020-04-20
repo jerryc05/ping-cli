@@ -19,11 +19,6 @@ categories = [
 
 [dependencies]
 socket2 = "^0"
-minreq  = { version = "^2", features = ["https"], optional = true}
-
-[features]
-default = ["dns"]
-dns = ["minreq"]
 
 [profile.release]
 codegen-units = 1

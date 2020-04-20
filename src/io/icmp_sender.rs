@@ -9,10 +9,12 @@ use std::io::ErrorKind;
 use std::ops::Try;
 use std::borrow::Cow;
 use crate::io::dns::dns_resolve;
+use std::thread::sleep;
 
 pub(crate) const DEFAULT_TIMEOUT: Duration = Duration::from_secs(4);
 const DEFAULT_PACKET_SIZE: u16 = 0;
 const DEFAULT_TTL: u32 = 64;
+const DEFAULT_INTERVAL: Duration = Duration::from_secs(1);
 #[allow(dead_code)]
 const ETHERNET_V2_HEADER_SIZE: usize = 14;
 const IPV4_HEADER_SIZE: usize = 20;
@@ -42,7 +44,8 @@ impl PingTimeout {
 
 // Separator
 
-pub fn ping(host_or_ip: &str, timeout_opt: PingTimeout, count_opt: Option<usize>, //todo
+pub fn ping(host_or_ip: &str, timeout_opt: &PingTimeout,
+            mut count_opt: Option<usize>, interval_opt: Option<f32>,
             p_size_opt: Option<u16>, ttl_opt: Option<u32>) -> Result<(), MyErr> {
   /* parse addr */
   let addr = match host_or_ip.parse() {
@@ -51,22 +54,61 @@ pub fn ping(host_or_ip: &str, timeout_opt: PingTimeout, count_opt: Option<usize>
       |err| MyErr::from_err(&err, file!(), line!() - 1))?
   };
 
-  /* generate icmp struct */
-  let mut echo_icmp = {
-    let vec = Vec::with_capacity(
-      p_size_opt.unwrap_or(DEFAULT_PACKET_SIZE) as usize);
-    match addr {
-      IpAddr::V4(_) => EchoIcmp::from_payload_v4(vec),
-      IpAddr::V6(_) => EchoIcmp::from_payload_v6(vec),
-    }
-  };
+  let p_size = p_size_opt.unwrap_or(DEFAULT_PACKET_SIZE);
+  let vec = Vec::with_capacity(p_size as usize);
 
-  ping_from_ip(addr, timeout_opt, ttl_opt, &mut echo_icmp)
+  /* print before PING */
+  {
+    println!();
+    println!("PING {} ({}) {}({}) bytes of data.",
+             host_or_ip, addr, p_size, p_size + 28);
+  }
+
+  if count_opt != Some(0) {
+    let interval = {
+      let mut int_ = DEFAULT_INTERVAL;
+      if let Some(dur) = interval_opt {
+        if dur > 0. {
+          int_ = Duration::from_secs_f32(dur);
+        }
+      }
+      int_
+    };
+
+    loop {
+      /* generate icmp struct */
+      let mut echo_icmp = {
+        match addr {
+          IpAddr::V4(_) => EchoIcmp::from_payload_v4(&vec),
+          IpAddr::V6(_) => EchoIcmp::from_payload_v6(&vec),
+        }
+      };
+      dbg!(&echo_icmp);
+
+      ping_from_ip(addr, timeout_opt, ttl_opt, &mut echo_icmp)?;
+
+      if let Some(mut count) = count_opt {
+        count -= 1;
+        count_opt = Some(count);
+
+        if count == 0 {
+          break;
+        }
+      };
+
+      sleep(interval);
+    }
+  }
+
+  println!();
+  println!("{1:-^0$}", CONSOLE_FMT_WIDTH, "PING stopped here.");
+
+  Ok(())
 }
 
 
-fn ping_from_ip(addr: IpAddr, timeout_opt: PingTimeout,
-                ttl_opt: Option<u32>, echo_icmp: &mut EchoIcmp) -> Result<(), MyErr> {
+fn ping_from_ip(addr: IpAddr, timeout_opt: &PingTimeout, ttl_opt: Option<u32>,
+                echo_icmp: &mut EchoIcmp) -> Result<(), MyErr> {
   let socket = {
     let domain;
     let protocol;
@@ -98,25 +140,29 @@ fn ping_from_ip(addr: IpAddr, timeout_opt: PingTimeout,
 
   /* send */
   {
-    let timeout = {
-      if let Some(dur) = timeout_opt.0 {
+    // timeout
+    {
+      let timeout = if let Some(dur) = timeout_opt.0 {
         if dur == Duration::from_secs(0) { None } else { timeout_opt.0 }
       } else {
         Some(DEFAULT_TIMEOUT)
-      }
+      };
+      socket.set_read_timeout(timeout).map_err(
+        |err| MyErr::from_err(&err, file!(), line!() - 1))?;
     };
-    socket.set_read_timeout(timeout).map_err(
-      |err| MyErr::from_err(&err, file!(), line!() - 1))?;
 
-    let ttl = ttl_opt.unwrap_or(DEFAULT_TTL);
-    socket.set_ttl(ttl).unwrap_or_else(
-      |err| {
-        eprintln!("WARN: Failed to set socket TTL.");
-        eprintln!("     [{:?}]", err);
-        eprintln!("at [{}：{}]", file!(), line!() - 4);
-      });
+    // ttl
+    {
+      let ttl = ttl_opt.unwrap_or(DEFAULT_TTL);
+      socket.set_ttl(ttl).unwrap_or_else(
+        |err| {
+          eprintln!("WARN: Failed to set socket TTL.");
+          eprintln!("     [{:?}]", err);
+          eprintln!("at [{}：{}]", file!(), line!() - 4);
+        });
+    }
 
-    /* checksum */
+    // checksum
     {
       if is_debug() {
         IcmpChecksum::gen_checksum(echo_icmp).unwrap_or_else(|_| {
@@ -128,22 +174,12 @@ fn ping_from_ip(addr: IpAddr, timeout_opt: PingTimeout,
       }
     }
 
-    /* print before PING */
-    {
-      println!();
-      let bytes = echo_icmp.payload.len();
-      println!("PING {} ({}) {}({}) bytes of data.",
-               addr.to_string(), // todo
-               addr.to_string(),
-               bytes, bytes + 28);
-    }
-
-    /* buffers */
+    // buffers
     let send_buf;
     {
       send_buf = Vec::from(echo_icmp as &dyn Icmp);
 
-      /* configure recv_buf */
+      // configure recv_buf
       {
         let capacity = match addr {
           IpAddr::V4(_) => send_buf.len() + IPV4_HEADER_SIZE,
@@ -162,7 +198,7 @@ fn ping_from_ip(addr: IpAddr, timeout_opt: PingTimeout,
     debug_assert_eq!(size, send_buf.len());
   }
 
-  /* recv */
+  // recv
   match socket.recv_from(&mut recv_buf) {
     Ok((size, sock_addr)) => {
       duration = timer.elapsed();
@@ -177,10 +213,11 @@ fn ping_from_ip(addr: IpAddr, timeout_opt: PingTimeout,
       {
         if is_debug() {
           for b in icmp_recv {
-            print!("{:02x} ", *b);
+            print!("{:02x} ", b);
           }
-          print!("\t");
+          println!();
         }
+
         println!("{} bytes from {}: icmp_seq={} ttl={} time={:.3} ms",
                  icmp_recv.len(),
                  sock_addr.as_std().into_result().map_err(
@@ -210,24 +247,21 @@ fn ping_from_ip(addr: IpAddr, timeout_opt: PingTimeout,
 
   */
 
-  println!();
-  println!("{1:-^0$}", CONSOLE_FMT_WIDTH, "PING stopped here.");
-
   Ok(())
 }
 
 #[test]
 fn test_ipv4() -> Result<(), MyErr> {
   use std::net::Ipv4Addr;
-  ping(&Ipv4Addr::LOCALHOST.to_string(), PingTimeout::default(),
-       None, None, None)?;
+  ping(&Ipv4Addr::LOCALHOST.to_string(), &PingTimeout::default(),
+       None, None, None, None)?;
   Ok(())
 }
 
 #[test]
 fn test_ipv6() -> Result<(), MyErr> {
   use std::net::Ipv6Addr;
-  ping(&Ipv6Addr::LOCALHOST.to_string(), PingTimeout::default(),
-       None, None, None)?;
+  ping(&Ipv6Addr::LOCALHOST.to_string(), &PingTimeout::default(),
+       None, None, None, None)?;
   Ok(())
 }
