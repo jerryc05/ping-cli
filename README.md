@@ -1,45 +1,70 @@
-# Cloudflare Internship Application: Systems
+# ping-cli
 
-## What is it?
+A PING emulator (for `Linux`-like OS) for Cloudflare 2020 Internship Coding Challenge.
 
-Please write a small Ping CLI application for MacOS or Linux.
-The CLI app should accept a hostname or an IP address as its argument, then send ICMP "echo requests" in a loop to the target while receiving "echo reply" messages.
-It should report loss and RTT times for each sent message.
+[toc]
 
-Please choose from among these languages: C/C++/Go/Rust
+## Usage
 
-## Useful Links
+```text
+SYNOPSIS
+	ping-cli ADDR_OR_HOST [OPTION_1 [OPTION_2 [...]]]
 
-- [A Tour of Go](https://tour.golang.org/welcome/1)
-- [The Rust Programming Language](https://doc.rust-lang.org/book/index.html)
+OPTIONS
+	-c count
+		Number of PINGs to send. 
+		Type: usize
+  -i interval
+		Number of PINGs to send.
+		Type: f32, [>= 0]
+  -s packetsize
+		Size of packet (payload) to send.
+		Type: u16
+  -t ttl
+		Time to live.
+		Type: u32
+  -W timeout
+		Timeout for each PING to end (as Request timed out).
+		Type: f32, [>= 0]
+```
 
-## Requirements
 
-### 1. Use one of the specified languages
 
-Please choose from among C/C++/Go/Rust. If you aren't familiar with these languages, you're not alone! Many engineers join Cloudflare without
-specific langauge experience. Please consult [A Tour of Go](https://tour.golang.org/welcome/1) or [The Rust Programming Language](https://doc.rust-lang.org/book/index.html).
+## Implementation Detail
 
-### 2. Build a tool with a CLI interface
+- Language: [Rust](https://www.rust-lang.org/)
+- Dependencies:
+  - [socket2](https://docs.rs/socket2)
+- Supported Specifications:
+  - ICMPv4
+  - ICMPv6
+  - DNS Resolve using `host` utility from `Linux` systems.
+  - `-c count` flag from `man ping` page.
+  - `-i interval` flag from `man ping` page.
+  - `-s packetsize` flag from `man ping` page.
+  - `-t ttl` flag from `man ping` page.
+  - `-W timeout` flag from `man ping` page, except that a negative `timeout` will be interpreted as **block forever**.
 
-The tool should accept as a positional terminal argument a hostname or IP address.
+## Known Restrictions
 
-### 3. Send ICMP "echo requests" in an infinite loop
+### 1. Abbreviated IPv4 address parsing
 
-As long as the program is running it should continue to emit requests with a periodic delay.
+- Due to the fact that Rust uses `inet_pton()` function internally for parsing `IPv4` strings to `IpAddr` struct, **only** (`a.b.c.d`) format is supported.
+  - For example: 
+    - `“1.1.1.1"` is ok.
+    - `“1.0.0.1”` is ok.  
+    - `“1.1"` will **fail**, although it is equivalent to `“1.0.0.1”`.
+    - `“1.0.1"` will **fail**, although it is equivalent to `“1.0.0.1”`.
+    - `“127.0.0.1”` is ok.  
+    - `“127.0.1”` is ok because I handled this **specifically**.
+    - `“127.1”` is ok because I handled this **specifically**.
+- This can be solved by manual parsing, but doing so is not necessary.
 
-### 4. Report loss and RTT times for each message
+### 2. Argument Overwriting
 
-Packet loss and latency should be reported as each message received.
-
-## Submitting your project
-
-When submitting your project, you should prepare your code for upload to Greenhouse. The preferred method for doing this is to create a "ZIP archive" of your project folder: for more instructions on how to do this on Windows and Mac, see [this guide](https://www.sweetwater.com/sweetcare/articles/how-to-zip-and-unzip-files/).
-
-Please provide the source code only, a compiled binary is not necessary.
-
-## Extra Credit
-
-1. Add support for both IPv4 and IPv6
-2. Allow to set TTL as an argument and report the corresponding "time exceeded” ICMP messages
-3. Any additional features listed in the ping man page or which you think would be valuable
+- Duplicated arguments passed to the program will **overwrite** the previous ones.
+  - For example:
+    - `ping-cli -c 3 -c 2 c 1 -c 0` is equivalent to `ping-cli -c 0`.
+- Also note that if an invalid argument is passed as duplicated arguments, the program will also **exit**.
+  - For example:
+    - `ping-cli -c -1 -c 1` will not work because `-1` is invalid.
