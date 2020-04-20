@@ -1,4 +1,4 @@
-use ping_cli::{ping, PingTimeout, MyErr};
+use ping_cli::{ping, MyErr};
 use std::env::args;
 use std::net::Ipv4Addr;
 
@@ -23,6 +23,7 @@ fn main() -> Result<(), MyErr> {
   let mut interval_opt = None;
   let mut p_size_opt = None;
   let mut ttl_opt = None;
+  let mut timeout_opt = None;
   while let Some(arg1) = args.next() {
     match args.next() {
       Some(arg2) =>
@@ -53,6 +54,11 @@ fn main() -> Result<(), MyErr> {
               MyErr::from_str(format!("Failed to parse [{}] to u32 ttl!", arg2),
                               file!(), line!() - 2))?)
           },
+          "-W" => timeout_opt = {
+            Some(arg2.parse().map_err(|_|
+              MyErr::from_str(format!("Failed to parse [{}] to f32 timeout!", arg2),
+                              file!(), line!() - 2))?)
+          },
           arg => {
             return Err(MyErr::from_str(
               format!("Unknown arg/flag [{}]. Check your input!", arg),
@@ -65,8 +71,7 @@ fn main() -> Result<(), MyErr> {
     }
   };
 
-  ping(&host_or_ip, &PingTimeout::default(),
-       count_opt, interval_opt, p_size_opt, ttl_opt)?;
+  ping(&host_or_ip, timeout_opt, count_opt, interval_opt, p_size_opt, ttl_opt)?;
 
   Ok(())
 }

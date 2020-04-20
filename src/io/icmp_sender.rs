@@ -19,32 +19,8 @@ const DEFAULT_INTERVAL: Duration = Duration::from_secs(1);
 const ETHERNET_V2_HEADER_SIZE: usize = 14;
 const IPV4_HEADER_SIZE: usize = 20;
 
-#[derive(Debug)]
-pub struct PingTimeout(Option<Duration>);
 
-impl Default for PingTimeout {
-  fn default() -> Self {
-    Self(Some(DEFAULT_TIMEOUT))
-  }
-}
-
-impl PingTimeout {
-  pub fn from_ms(ms: u64) -> Self {
-    Self::from_duration(Duration::from_millis(ms))
-  }
-
-  pub fn from_duration(dur: Duration) -> Self {
-    Self(Some(dur))
-  }
-
-  pub const fn forever() -> Self {
-    Self(None)
-  }
-}
-
-// Separator
-
-pub fn ping(host_or_ip: &str, timeout_opt: &PingTimeout,
+pub fn ping(host_or_ip: &str, timeout_opt: Option<f32>,
             mut count_opt: Option<usize>, interval_opt: Option<f32>,
             p_size_opt: Option<u16>, ttl_opt: Option<u32>) -> Result<(), MyErr> {
   // inspect params
@@ -64,6 +40,20 @@ pub fn ping(host_or_ip: &str, timeout_opt: &PingTimeout,
     payload_vec = vec;
     dbg!(&payload_vec);
   }
+
+  // parse timeout_opt
+  let timeout = {
+    match timeout_opt {
+      Some(t_out) => {
+        if t_out >= 0. {
+          Some(Duration::from_secs_f32(t_out))
+        } else {
+          None
+        }
+      }
+      None => Some(DEFAULT_TIMEOUT)
+    }
+  };
 
   // print before PING
   {
@@ -88,7 +78,7 @@ pub fn ping(host_or_ip: &str, timeout_opt: &PingTimeout,
       };
       dbg!(&echo_icmp);
 
-      ping_from_ip(addr, timeout_opt, ttl_opt, &mut echo_icmp)?;
+      ping_from_ip(addr, timeout, ttl_opt, &mut echo_icmp)?;
 
       // interval
       {
@@ -113,7 +103,7 @@ pub fn ping(host_or_ip: &str, timeout_opt: &PingTimeout,
 }
 
 
-fn ping_from_ip(addr: IpAddr, timeout_opt: &PingTimeout, ttl_opt: Option<u32>,
+fn ping_from_ip(addr: IpAddr, timeout: Option<Duration>, ttl_opt: Option<u32>,
                 echo_icmp: &mut EchoIcmp) -> Result<(), MyErr> {
   let socket = {
     let domain;
@@ -147,16 +137,8 @@ fn ping_from_ip(addr: IpAddr, timeout_opt: &PingTimeout, ttl_opt: Option<u32>,
   /* send */
   {
     // timeout
-    {
-      let timeout =
-        if let Some(dur) = timeout_opt.0 {
-          if dur == Duration::from_secs(0) { None } else { timeout_opt.0 }
-        } else {
-          Some(DEFAULT_TIMEOUT)
-        };
-      socket.set_read_timeout(timeout).map_err(
-        |err| MyErr::from_err(&err, file!(), line!() - 1))?;
-    };
+    socket.set_read_timeout(timeout).map_err(
+      |err| MyErr::from_err(&err, file!(), line!() - 1))?;
 
     // ttl
     {
@@ -240,13 +222,18 @@ fn ping_from_ip(addr: IpAddr, timeout_opt: &PingTimeout, ttl_opt: Option<u32>,
 
     Err(err) =>
       if err.kind() == ErrorKind::TimedOut || err.kind() == ErrorKind::WouldBlock {
-        println!("Request timed out.");
+        dbg!(err);
+        print!("Request timed out ");
+        match timeout {
+          Some(dur) => println!("after [{}] s.", dur.as_secs_f32()),
+          None => println!("indefinitely."),
+        }
       } else {
         return Err(MyErr::from_err(&err, file!(), line!() - 4));
       }
   };
 
-  /*
+  /* todo
 
   --- 1.1.1.1 ping statistics ---
   3 packets transmitted, 3 received, 0% packet loss, time 2002ms
@@ -260,7 +247,7 @@ fn ping_from_ip(addr: IpAddr, timeout_opt: &PingTimeout, ttl_opt: Option<u32>,
 #[test]
 fn test_ipv4() -> Result<(), MyErr> {
   use std::net::Ipv4Addr;
-  ping(&Ipv4Addr::LOCALHOST.to_string(), &PingTimeout::default(),
+  ping(&Ipv4Addr::LOCALHOST.to_string(), None,
        None, None, None, None)?;
   Ok(())
 }
@@ -268,7 +255,7 @@ fn test_ipv4() -> Result<(), MyErr> {
 #[test]
 fn test_ipv6() -> Result<(), MyErr> {
   use std::net::Ipv6Addr;
-  ping(&Ipv6Addr::LOCALHOST.to_string(), &PingTimeout::default(),
+  ping(&Ipv6Addr::LOCALHOST.to_string(), None,
        None, None, None, None)?;
   Ok(())
 }
